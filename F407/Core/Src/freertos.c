@@ -236,15 +236,15 @@ void Start_shooter_Task(void const * argument)
     Pressure_Process(pressure_data);
 
 
-// Rk3588DataValue_t enable_data;
+Rk3588DataValue_t enable_data;
 
-// rk3588_get_data_value(RK3588_CMD_CHASSIS_ENABLE, &enable_data);
+rk3588_get_data_value(RK3588_CMD_CHASSIS_ENABLE, &enable_data);
 
-// printf("chassis_enable=%ld valid=%u fresh=%u age=%lu ms\r\n",
-//        (long)enable_data.value,
-//        (unsigned)enable_data.time_info.valid,
-//        (unsigned)enable_data.time_info.fresh,
-//        (unsigned long)enable_data.time_info.age_ms);
+printf("chassis_enable=%ld valid=%u fresh=%u age=%lu ms\r\n",
+       (long)enable_data.value,
+       (unsigned)enable_data.time_info.valid,
+       (unsigned)enable_data.time_info.fresh,
+       (unsigned long)enable_data.time_info.age_ms);
 
 
 
@@ -309,7 +309,7 @@ void Start_can_task(void const * argument)
     if (can_task_100ms_counter >= 100)
     {
       can_task_100ms_counter = 0U;
-      rk3588_send_heartbeat();
+      if(wireless_test[0]) rk3588_send_heartbeat();
     }
 
     can_fifo_tx_process();

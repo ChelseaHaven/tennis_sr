@@ -9,7 +9,7 @@
 #define RK3588_FEEDBACK_ID_OFFSET       0x100U
 #define RK3588_FEEDBACK_ID              (RK3588_FEEDBACK_ID_OFFSET + RK3588_NODE_ID)
 #define RK3588_CMD_CHASSIS_ENABLE       0x00U
-#define RK3588_CMD_01                   0x01U
+#define RK3588_CMD_SHOOTER_ENABLE       0x01U
 #define RK3588_CMD_02                   0x02U
 #define RK3588_CMD_03                   0x03U
 #define RK3588_DATA_ITEM_COUNT          4U
