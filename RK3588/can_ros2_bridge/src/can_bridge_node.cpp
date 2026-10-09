@@ -63,6 +63,23 @@ private:
     }
   }
 
+  void send_manual_enable(const std::uint32_t control_bits)
+  {
+    const auto frame = can_ros2_bridge::Rk3588Protocol::make_manual_enable_frame(
+      control_bits);
+    try {
+      transport_->send(frame, 100ms);
+      RCLCPP_INFO(
+        get_logger(),
+        "Sent manual enable command: control_bits=0x%08X CAN ID=0x%X "
+        "data=[0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X]",
+        static_cast<unsigned int>(control_bits), frame.id, frame.data[0], frame.data[1],
+        frame.data[2], frame.data[3], frame.data[4]);
+    } catch (const std::exception & error) {
+      RCLCPP_ERROR(get_logger(), "Failed to send manual enable command: %s", error.what());
+    }
+  }
+
   void handle_state_change(const std::optional<bool> & enabled)
   {
     if (enabled.has_value()) {

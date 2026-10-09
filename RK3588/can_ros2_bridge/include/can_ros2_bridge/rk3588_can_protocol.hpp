@@ -15,9 +15,13 @@ public:
   static constexpr std::uint32_t kFeedbackIdOffset = 0x100U;
   static constexpr std::uint32_t kFeedbackId = kNodeId + kFeedbackIdOffset;
   static constexpr std::uint8_t kCommandChassisEnable = 0x00U;
+  static constexpr std::uint8_t kCommandManualEnable = 0x01U;
+  static constexpr std::uint32_t kManualEnableChassisBit = 1U << 0U;
+  static constexpr std::uint32_t kManualEnableLauncherBit = 1U << 1U;
 
   static bool is_heartbeat(const CanFrame & frame) noexcept;
   static CanFrame make_chassis_enable_frame(bool enabled) noexcept;
+  static CanFrame make_manual_enable_frame(std::uint32_t control_bits) noexcept;
 };
 
 }  // namespace can_ros2_bridge

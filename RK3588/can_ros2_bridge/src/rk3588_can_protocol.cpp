@@ -19,4 +19,17 @@ CanFrame Rk3588Protocol::make_chassis_enable_frame(const bool enabled) noexcept
   return frame;
 }
 
+CanFrame Rk3588Protocol::make_manual_enable_frame(const std::uint32_t control_bits) noexcept
+{
+  CanFrame frame;
+  frame.id = kFeedbackId;
+  frame.length = 5U;
+  frame.data[0] = kCommandManualEnable;
+  frame.data[1] = static_cast<std::uint8_t>(control_bits & 0xFFU);
+  frame.data[2] = static_cast<std::uint8_t>((control_bits >> 8U) & 0xFFU);
+  frame.data[3] = static_cast<std::uint8_t>((control_bits >> 16U) & 0xFFU);
+  frame.data[4] = static_cast<std::uint8_t>((control_bits >> 24U) & 0xFFU);
+  return frame;
+}
+
 }  // namespace can_ros2_bridge

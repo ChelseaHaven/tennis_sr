@@ -44,7 +44,7 @@ sudo apt install ros-jazzy-ros2-socketcan ros-jazzy-ros2-socketcan-msgs
 构建并启动：
 
 ```bash
-cd ~/chenzhihan/ros_project/can_ros2_bridge
+cd RK3588/can_ros2_bridge
 source /opt/ros/jazzy/setup.bash
 colcon build --packages-select can_ros2_bridge
 source install/setup.bash
