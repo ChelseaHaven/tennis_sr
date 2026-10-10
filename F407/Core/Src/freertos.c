@@ -26,7 +26,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "system.h"
-#include "shooter.h"
+#include "launcher.h"
 #include "oid.h"
 #include "rk3588.h"
 /* USER CODE END Includes */
@@ -53,7 +53,7 @@
 /* USER CODE END Variables */
 osThreadId imu_TaskHandle;
 osThreadId chassis_TaskHandle;
-osThreadId shooter_TaskHandle;
+osThreadId launcher_TaskHandle;
 osThreadId can_TaskHandle;
 
 /* Private function prototypes -----------------------------------------------*/
@@ -63,7 +63,7 @@ osThreadId can_TaskHandle;
 
 void Start_imu_Task(void const * argument);
 void Start_chassis_Task(void const * argument);
-void Start_shooter_Task(void const * argument);
+void Start_launcher_Task(void const * argument);
 void Start_can_task(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -119,9 +119,9 @@ void MX_FREERTOS_Init(void) {
   osThreadDef(chassis_Task, Start_chassis_Task, osPriorityIdle, 0, 512);
   chassis_TaskHandle = osThreadCreate(osThread(chassis_Task), NULL);
 
-  /* definition and creation of shooter_Task */
-  osThreadDef(shooter_Task, Start_shooter_Task, osPriorityIdle, 0, 512);
-  shooter_TaskHandle = osThreadCreate(osThread(shooter_Task), NULL);
+  /* definition and creation of launcher_Task */
+  osThreadDef(launcher_Task, Start_launcher_Task, osPriorityIdle, 0, 512);
+  launcher_TaskHandle = osThreadCreate(osThread(launcher_Task), NULL);
 
   /* definition and creation of can_Task */
   osThreadDef(can_Task, Start_can_task, osPriorityIdle, 0, 512);
@@ -183,13 +183,13 @@ void Start_chassis_Task(void const * argument)
   for(;;)
   {
 
-  // car_position_pid[0].Kp = wireless_test[6];   //电机A速度环比例系�??
-  // car_position_pid[0].Ki = wireless_test[7];  //电机A速度环微分系�??
+  // car_position_pid[0].Kp = wireless_test[6];   //电机A速度环比例系�???
+  // car_position_pid[0].Ki = wireless_test[7];  //电机A速度环微分系�???
   // car_position_pid[0].Kd = wireless_test[8];
   
-  // car_position_pid[1].Kp = wireless_test[6];   //电机B速度环比例系�??
-  // car_position_pid[1].Ki = wireless_test[7];  //电机B速度环微分系�??对了
-  // car_position_pid[2].Ki = wireless_test[7];  //电机C速度环微分系�??
+  // car_position_pid[1].Kp = wireless_test[6];   //电机B速度环比例系�???
+  // car_position_pid[1].Ki = wireless_test[7];  //电机B速度环微分系�???对了
+  // car_position_pid[2].Ki = wireless_test[7];  //电机C速度环微分系�???
   // car_position_pid[2].Kd = wireless_test[8];
   
 
@@ -213,16 +213,16 @@ void Start_chassis_Task(void const * argument)
   /* USER CODE END Start_chassis_Task */
 }
 
-/* USER CODE BEGIN Header_Start_shooter_Task */
+/* USER CODE BEGIN Header_Start_launcher_Task */
 /**
-* @brief Function implementing the shooter_Task thread.
+* @brief Function implementing the launcher_Task thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_Start_shooter_Task */
-void Start_shooter_Task(void const * argument)
+/* USER CODE END Header_Start_launcher_Task */
+void Start_launcher_Task(void const * argument)
 {
-  /* USER CODE BEGIN Start_shooter_Task */
+  /* USER CODE BEGIN Start_launcher_Task */
   TickType_t lastWakeTime;
   const TickType_t taskPeriod = pdMS_TO_TICKS(20U);
 
@@ -236,15 +236,19 @@ void Start_shooter_Task(void const * argument)
     Pressure_Process(pressure_data);
 
 
-Rk3588DataValue_t enable_data;
+// Rk3588DataValue_t enable_data;
 
-rk3588_get_data_value(RK3588_CMD_CHASSIS_ENABLE, &enable_data);
+// rk3588_get_data_value(RK3588_CMD_MANUAL_ENABLE, &enable_data);
 
-printf("chassis_enable=%ld valid=%u fresh=%u age=%lu ms\r\n",
-       (long)enable_data.value,
-       (unsigned)enable_data.time_info.valid,
-       (unsigned)enable_data.time_info.fresh,
-       (unsigned long)enable_data.time_info.age_ms);
+// printf("chassis_enable=%ld valid=%u fresh=%u age=%lu ms\r\n",
+//        (long)enable_data.value,
+//        (unsigned)enable_data.time_info.valid,
+//        (unsigned)enable_data.time_info.fresh,
+//        (unsigned long)enable_data.time_info.age_ms);
+
+    uint8_t chassis_enabled = rk3588_is_enabled(RK3588_MANUAL_ENABLE_CHASSIS_MASK);
+    uint8_t launcher_enabled = rk3588_is_enabled(RK3588_MANUAL_ENABLE_LAUNCHER_MASK);
+    printf("chassis_enabled=%u, launcher_enabled=%u\r\n", (unsigned)chassis_enabled, (unsigned)launcher_enabled);
 
 
 
@@ -257,7 +261,7 @@ printf("chassis_enable=%ld valid=%u fresh=%u age=%lu ms\r\n",
     //printf("%f,%f,%f\r\n",imu.pitch,imu.roll,imu.yaw_total);
     vTaskDelayUntil(&lastWakeTime, taskPeriod);
   }
-  /* USER CODE END Start_shooter_Task */
+  /* USER CODE END Start_launcher_Task */
 }
 
 /* USER CODE BEGIN Header_Start_can_task */
@@ -294,22 +298,22 @@ void Start_can_task(void const * argument)
 
       rk3588_refresh_freshness();
       //oid_refresh_freshness();
-      //oid_process_speed_queries();  // 每 5 ms 查询一个节点的速度，6 个节点一轮约 30 ms
-      //oid_process_heartbeats();     // 每 5 ms 查询一个节点的速度，6 个节点一轮约 30 ms
+      //oid_process_speed_queries();  // �? 5 ms 查询�?个节点的速度�?6 个节点一轮约 30 ms
+      //oid_process_heartbeats();     // �? 5 ms 查询�?个节点的速度�?6 个节点一轮约 30 ms
     }
 
     can_task_20ms_counter++;
     if (can_task_20ms_counter >= 20)
     {
       can_task_20ms_counter = 0U;
-      //oid_process_queries();        //每 20 ms 查询一个节点的一项非速度数据；72 项轮询一轮约 1440 ms
+      //oid_process_queries();        //�? 20 ms 查询�?个节点的�?项非速度数据�?72 项轮询一轮约 1440 ms
     }
 
     can_task_100ms_counter++;
     if (can_task_100ms_counter >= 100)
     {
       can_task_100ms_counter = 0U;
-      if(wireless_test[0]) rk3588_send_heartbeat();
+      rk3588_send_heartbeat();
     }
 
     can_fifo_tx_process();

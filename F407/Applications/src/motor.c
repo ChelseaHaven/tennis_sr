@@ -27,9 +27,9 @@ HAL_StatusTypeDef motor_set_chassis_speed_mm_s(uint8_t motor_id, int32_t speed_m
     return motor_send_speed_erpm(motor_id, speed_erpm);
 }
 
-HAL_StatusTypeDef motor_set_shooter_speed_erpm(uint8_t motor_id, int32_t speed_erpm)
+HAL_StatusTypeDef motor_set_launcher_speed_erpm(uint8_t motor_id, int32_t speed_erpm)
 {
-    if ((motor_id < OID_SHOOTER_NODE_ID_MIN) || (motor_id > OID_SHOOTER_NODE_ID_MAX))
+    if ((motor_id < OID_LAUNCHER_NODE_ID_MIN) || (motor_id > OID_LAUNCHER_NODE_ID_MAX))
     {
         return HAL_ERROR;
     }

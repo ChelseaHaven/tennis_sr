@@ -30,8 +30,8 @@ extern EncoderData_t motor_encoder;
 void encoder_init(void);
 void encoder_process(void);
 uint8_t encoder_get_chassis_speed_mm_s(uint8_t motor_id, int32_t *speed_mm_s);
-uint8_t encoder_get_shooter_speed_erpm(uint8_t motor_id,
-                                       int32_t *speed_erpm);
+uint8_t encoder_get_launcher_speed_erpm(uint8_t motor_id,
+                                        int32_t *speed_erpm);
 int32_t encoder_erpm_to_mm_s(uint8_t motor_id, int32_t speed_erpm);
 int32_t encoder_mm_s_to_erpm(uint8_t motor_id, int32_t speed_mm_s);
 

@@ -13,12 +13,12 @@ static Rk3588Telemetry_t rk3588_telemetry;
 
 static const uint8_t rk3588_reply_dlc[RK3588_DATA_ITEM_COUNT] =
 {
-    2U, 2U, 2U, 2U
+    2U, 5U, 2U, 2U
 };
 
 static const uint8_t rk3588_value_type[RK3588_DATA_ITEM_COUNT] =
 {
-    RK3588_VALUE_U8, RK3588_VALUE_U8, RK3588_VALUE_U8, RK3588_VALUE_U8
+    RK3588_VALUE_U8, RK3588_VALUE_U32_LE, RK3588_VALUE_U8, RK3588_VALUE_U8
 };
 
 static const uint16_t rk3588_timeout_ms[RK3588_DATA_ITEM_COUNT] =
@@ -44,6 +44,14 @@ static uint32_t rk3588_read_u32_be(const uint8_t *data)
            (uint32_t)data[3];
 }
 
+static uint32_t rk3588_read_u32_le(const uint8_t *data)
+{
+    return (uint32_t)data[0] |
+           ((uint32_t)data[1] << 8U) |
+           ((uint32_t)data[2] << 16U) |
+           ((uint32_t)data[3] << 24U);
+}
+
 static int32_t rk3588_decode_value(uint8_t type, const uint8_t *payload)
 {
     switch (type)
@@ -57,6 +65,8 @@ static int32_t rk3588_decode_value(uint8_t type, const uint8_t *payload)
         case RK3588_VALUE_I32:
         case RK3588_VALUE_U32:
             return (int32_t)rk3588_read_u32_be(payload);
+        case RK3588_VALUE_U32_LE:
+            return (int32_t)rk3588_read_u32_le(payload);
         case RK3588_VALUE_RAW:
         default:
             return 0;
@@ -151,4 +161,18 @@ uint8_t rk3588_get_data_value(uint8_t command, Rk3588DataValue_t *out_value)
     taskEXIT_CRITICAL();
 
     return 1U;
+}
+
+uint8_t rk3588_is_enabled(uint32_t enable_mask)
+{
+    Rk3588DataValue_t manual_enable;
+
+    if ((enable_mask == 0U) ||
+        (rk3588_get_data_value(RK3588_CMD_MANUAL_ENABLE, &manual_enable) == 0U) ||
+        (manual_enable.time_info.valid == 0U))
+    {
+        return 0U;
+    }
+
+    return (uint8_t)(((uint32_t)manual_enable.value & enable_mask) == enable_mask);
 }

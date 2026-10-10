@@ -9,7 +9,10 @@
 #define RK3588_FEEDBACK_ID_OFFSET       0x100U
 #define RK3588_FEEDBACK_ID              (RK3588_FEEDBACK_ID_OFFSET + RK3588_NODE_ID)
 #define RK3588_CMD_CHASSIS_ENABLE       0x00U
-#define RK3588_CMD_SHOOTER_ENABLE       0x01U
+#define RK3588_CMD_MANUAL_ENABLE        0x01U
+/* Bit mask carried by RK3588_CMD_MANUAL_ENABLE as a 32-bit little-endian value. */
+#define RK3588_MANUAL_ENABLE_CHASSIS_MASK  (1UL << 0U)
+#define RK3588_MANUAL_ENABLE_LAUNCHER_MASK (1UL << 1U)
 #define RK3588_CMD_02                   0x02U
 #define RK3588_CMD_03                   0x03U
 #define RK3588_DATA_ITEM_COUNT          4U
@@ -21,6 +24,7 @@ typedef enum
     RK3588_VALUE_U16,
     RK3588_VALUE_I32,
     RK3588_VALUE_U32,
+    RK3588_VALUE_U32_LE,
     RK3588_VALUE_RAW
 } Rk3588ValueType_t;
 
@@ -37,5 +41,6 @@ HAL_StatusTypeDef rk3588_send_heartbeat(void);
 void rk3588_handle_can_rx_frame(const CanFifoFrame_t *frame);
 void rk3588_refresh_freshness(void);
 uint8_t rk3588_get_data_value(uint8_t command, Rk3588DataValue_t *out_value);
+uint8_t rk3588_is_enabled(uint32_t enable_mask);
 
 #endif

@@ -121,11 +121,11 @@ uint8_t encoder_get_chassis_speed_mm_s(uint8_t motor_id, int32_t *speed_mm_s)
     return 1U;
 }
 
-uint8_t encoder_get_shooter_speed_erpm(uint8_t motor_id, int32_t *speed_erpm)
+uint8_t encoder_get_launcher_speed_erpm(uint8_t motor_id, int32_t *speed_erpm)
 {
     int32_t measured_speed_erpm;
 
-    if ((speed_erpm == NULL) || (motor_id < OID_SHOOTER_NODE_ID_MIN) || (motor_id > OID_SHOOTER_NODE_ID_MAX))
+    if ((speed_erpm == NULL) || (motor_id < OID_LAUNCHER_NODE_ID_MIN) || (motor_id > OID_LAUNCHER_NODE_ID_MAX))
     {
         return 0U;
     }
@@ -135,7 +135,7 @@ uint8_t encoder_get_shooter_speed_erpm(uint8_t motor_id, int32_t *speed_erpm)
         return 0U;
     }
 
-    if (motor_id == OID_SHOOTER_NODE_ID_MAX)
+    if (motor_id == OID_LAUNCHER_NODE_ID_MAX)
     {
         measured_speed_erpm = -measured_speed_erpm;
     }
@@ -153,8 +153,8 @@ void encoder_process(void)
     (void)encoder_get_chassis_speed_mm_s(MOTOR_ID_REAR_LEFT, &motor_encoder.rear_left);
     (void)encoder_get_chassis_speed_mm_s(MOTOR_ID_REAR_RIGHT, &motor_encoder.rear_right);
     (void)encoder_get_chassis_speed_mm_s(MOTOR_ID_FRONT_LEFT, &motor_encoder.front_left);
-    (void)encoder_get_shooter_speed_erpm(MOTOR_ID_LAUNCHER_UP, &motor_encoder.launcher_left_erpm);
-    (void)encoder_get_shooter_speed_erpm(MOTOR_ID_LAUNCHER_DOWN, &motor_encoder.launcher_right_erpm);
+    (void)encoder_get_launcher_speed_erpm(MOTOR_ID_LAUNCHER_UP, &motor_encoder.launcher_left_erpm);
+    (void)encoder_get_launcher_speed_erpm(MOTOR_ID_LAUNCHER_DOWN, &motor_encoder.launcher_right_erpm);
 }
 
 void encoder_init(void)
