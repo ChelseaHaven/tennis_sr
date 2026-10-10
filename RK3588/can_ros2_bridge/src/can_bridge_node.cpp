@@ -32,12 +32,12 @@ public:
 
     RCLCPP_INFO(get_logger(), "Listening on SocketCAN interface '%s'", interface.c_str());
     RCLCPP_INFO(
-      get_logger(), "Heartbeat ID=0x%X timeout=%ld ms; chassis command ID=0x%X",
+      get_logger(), "Heartbeat ID=0x%X timeout=%ld ms; global command ID=0x%X",
       can_ros2_bridge::Rk3588Protocol::kNodeId,
       static_cast<long>(kHeartbeatTimeout.count()),
       can_ros2_bridge::Rk3588Protocol::kFeedbackId);
 
-    send_chassis_enable(false);
+    send_global_enable(false);
     receive_thread_ = std::thread(&CanBridgeNode::receive_loop, this);
   }
 
@@ -50,13 +50,13 @@ public:
   }
 
 private:
-  void send_chassis_enable(const bool enabled)
+  void send_global_enable(const bool enabled)
   {
-    const auto frame = can_ros2_bridge::Rk3588Protocol::make_chassis_enable_frame(enabled);
+    const auto frame = can_ros2_bridge::Rk3588Protocol::make_global_enable_frame(enabled);
     try {
       transport_->send(frame, 100ms);
       RCLCPP_INFO(
-        get_logger(), "Sent chassis %s: CAN ID=0x%X data=[0x%02X, 0x%02X]",
+        get_logger(), "Sent global %s: CAN ID=0x%X data=[0x%02X, 0x%02X]",
         enabled ? "enable" : "disable", frame.id, frame.data[0], frame.data[1]);
     } catch (const std::exception & error) {
       RCLCPP_ERROR(get_logger(), "Failed to send chassis command: %s", error.what());
@@ -83,7 +83,7 @@ private:
   void handle_state_change(const std::optional<bool> & enabled)
   {
     if (enabled.has_value()) {
-      send_chassis_enable(enabled.value());
+      send_global_enable(enabled.value());
     }
   }
 
