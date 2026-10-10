@@ -26,3 +26,8 @@ F407/MDK-ARM/.vscode/*.log*
 /RK3588/**/build/
 /RK3588/**/install/
 /RK3588/**/log/
+
+# Colcon workspace-root outputs
+/build/
+/install/
+/log/
