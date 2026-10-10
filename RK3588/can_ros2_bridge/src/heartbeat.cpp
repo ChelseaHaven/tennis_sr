@@ -1,6 +1,7 @@
-#include "can_ros2_bridge/heartbeat_monitor.hpp"
+#include "can_ros2_bridge/heartbeat.hpp"
 
 #include <stdexcept>
+#include <utility>
 
 namespace can_ros2_bridge
 {
@@ -36,6 +37,32 @@ std::optional<bool> HeartbeatWatchdog::check_timeout(const Clock::time_point now
     return false;
   }
   return std::nullopt;
+}
+
+HeartbeatController::HeartbeatController(
+  const std::chrono::milliseconds timeout, StateChangeCallback on_state_change)
+: watchdog_(timeout), on_state_change_(std::move(on_state_change))
+{
+  if (!on_state_change_) {
+    throw std::invalid_argument("Heartbeat state-change callback must be set");
+  }
+}
+
+void HeartbeatController::on_heartbeat(const Clock::time_point now)
+{
+  handle_state_change(watchdog_.on_heartbeat(now));
+}
+
+void HeartbeatController::check_timeout(const Clock::time_point now)
+{
+  handle_state_change(watchdog_.check_timeout(now));
+}
+
+void HeartbeatController::handle_state_change(const std::optional<bool> & enabled)
+{
+  if (enabled.has_value()) {
+    on_state_change_(enabled.value());
+  }
 }
 
 }  // namespace can_ros2_bridge

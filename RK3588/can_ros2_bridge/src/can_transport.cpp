@@ -1,4 +1,4 @@
-#include "can_ros2_bridge/socketcan_transport.hpp"
+#include "can_ros2_bridge/can_transport.hpp"
 
 #include <stdexcept>
 

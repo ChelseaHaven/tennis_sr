@@ -34,17 +34,27 @@ sudo apt install ros-jazzy-ros2-socketcan ros-jazzy-ros2-socketcan-msgs
 
 ## 工程模块
 
-- `can_bridge_node.cpp`：主程序，协调 CAN 收发、协议解析和心跳判断。
-- `socketcan_transport.cpp`：经典 CAN 通用收发，校验标准/扩展 ID 和 8 字节数据长度。
-- `rk3588_can_protocol.cpp`：3588 与单片机约定的 CAN ID、心跳识别和底盘使能帧编码。
-- `heartbeat_monitor.cpp`：根据 CAN ID `0x010` 的相邻心跳时间判断在线状态，超时阈值为 200 ms。
+- `bridge_node.cpp`：主程序，协调 CAN 收发、协议处理和心跳。
+- `manual_enable.cpp`：订阅底盘、发球机使能话题，维护控制位并调用 CAN 发送回调。
+- `can_transport.cpp`：经典 CAN 通用收发。
+- `rk3588_protocol.cpp`：3588 与单片机间的 CAN 协议和帧编码。
+- `heartbeat.cpp`：`HeartbeatWatchdog` 判断心跳在线状态；`HeartbeatController` 在状态变化时调用回调，主程序通过回调发送全局使能 CAN 命令。超时阈值为 200 ms。
 
-底盘使能帧使用 CAN ID `0x110`，数据为 `[0x00, 0x01]`；不使能帧数据为 `[0x00, 0x00]`。心跳识别要求标准帧 CAN ID 为 `0x010`、数据长度恰好为 1，且数据字节为 `0x00`。
+全局使能由心跳监控自动控制，使用 CAN ID `0x110`、命令 `0x00`，数据为 `[0x00, 0x01]`（使能）或 `[0x00, 0x00]`（失能）。心跳识别要求标准帧 CAN ID 为 `0x010`、数据长度恰好为 1，且数据字节为 `0x00`。
+
+人工使能通过语义明确的 ROS 话题控制：`/manual_enable/chassis` 控制底盘，`/manual_enable/launcher` 控制发球机。话题类型为 `std_msgs/msg/UInt8`，`data` 只能是 `0` 或 `1`。桥接节点把底盘状态映射到控制字 bit 0、把发球机状态映射到 bit 1，再合并为 4 字节控制位，通过 CAN ID `0x110`、命令 `0x01` 发送。重复收到相同状态时不重复发送，状态变化后才发送新帧；单片机心跳超时时人工控制位清零，心跳恢复时重新发送当前人工状态。
+
+例如，分别发布以下消息会使能底盘和发球机，对应 CAN 数据 `[0x01, 0x03, 0x00, 0x00, 0x00]`：
+
+```bash
+ros2 topic pub --once /manual_enable/chassis std_msgs/msg/UInt8 "{data: 1}"
+ros2 topic pub --once /manual_enable/launcher std_msgs/msg/UInt8 "{data: 1}"
+```
 
 构建并启动：
 
 ```bash
-cd RK3588/can_ros2_bridge
+cd ~/chenzhihan/tennis_project/tennis_sr
 source /opt/ros/jazzy/setup.bash
 colcon build --packages-select can_ros2_bridge
 source install/setup.bash

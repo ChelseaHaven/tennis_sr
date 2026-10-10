@@ -1,4 +1,4 @@
-#include "can_ros2_bridge/rk3588_can_protocol.hpp"
+#include "can_ros2_bridge/rk3588_protocol.hpp"
 
 namespace can_ros2_bridge
 {

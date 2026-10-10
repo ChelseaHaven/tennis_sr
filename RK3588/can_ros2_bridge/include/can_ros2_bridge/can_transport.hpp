@@ -1,5 +1,5 @@
-#ifndef CAN_ROS2_BRIDGE__SOCKETCAN_TRANSPORT_HPP_
-#define CAN_ROS2_BRIDGE__SOCKETCAN_TRANSPORT_HPP_
+#ifndef CAN_ROS2_BRIDGE__CAN_TRANSPORT_HPP_
+#define CAN_ROS2_BRIDGE__CAN_TRANSPORT_HPP_
 
 #include <chrono>
 #include <memory>
@@ -30,4 +30,4 @@ private:
 
 }  // namespace can_ros2_bridge
 
-#endif  // CAN_ROS2_BRIDGE__SOCKETCAN_TRANSPORT_HPP_
+#endif  // CAN_ROS2_BRIDGE__CAN_TRANSPORT_HPP_

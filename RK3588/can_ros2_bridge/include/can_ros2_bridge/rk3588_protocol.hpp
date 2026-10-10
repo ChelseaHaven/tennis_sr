@@ -1,5 +1,5 @@
-#ifndef CAN_ROS2_BRIDGE__RK3588_CAN_PROTOCOL_HPP_
-#define CAN_ROS2_BRIDGE__RK3588_CAN_PROTOCOL_HPP_
+#ifndef CAN_ROS2_BRIDGE__RK3588_PROTOCOL_HPP_
+#define CAN_ROS2_BRIDGE__RK3588_PROTOCOL_HPP_
 
 #include <cstdint>
 
@@ -26,4 +26,4 @@ public:
 
 }  // namespace can_ros2_bridge
 
-#endif  // CAN_ROS2_BRIDGE__RK3588_CAN_PROTOCOL_HPP_
+#endif  // CAN_ROS2_BRIDGE__RK3588_PROTOCOL_HPP_

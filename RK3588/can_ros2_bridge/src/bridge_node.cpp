@@ -1,15 +1,17 @@
 #include <atomic>
 #include <chrono>
 #include <cstdio>
+#include <cstdint>
 #include <exception>
 #include <memory>
-#include <optional>
+#include <mutex>
 #include <string>
 #include <thread>
 
-#include "can_ros2_bridge/socketcan_transport.hpp"
-#include "can_ros2_bridge/heartbeat_monitor.hpp"
-#include "can_ros2_bridge/rk3588_can_protocol.hpp"
+#include "can_ros2_bridge/can_transport.hpp"
+#include "can_ros2_bridge/heartbeat.hpp"
+#include "can_ros2_bridge/manual_enable.hpp"
+#include "can_ros2_bridge/rk3588_protocol.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "ros2_socketcan/socket_can_id.hpp"
 
@@ -19,13 +21,24 @@ namespace
 {
 constexpr auto kHeartbeatTimeout = 200ms;
 constexpr auto kReceivePollInterval = 10ms;
-}
+}  // namespace
 
 class CanBridgeNode : public rclcpp::Node
 {
 public:
   CanBridgeNode()
-  : Node("can_receiver_node"), watchdog_(kHeartbeatTimeout), running_(true)
+  : Node("can_receiver_node"),
+    heartbeat_controller_(kHeartbeatTimeout, [this](const bool enabled) {
+      send_global_enable(enabled);
+      if (manual_enable_) {
+        if (enabled) {
+          manual_enable_->resend_current_state();
+        } else {
+          manual_enable_->clear_state();
+        }
+      }
+    }),
+    running_(true)
   {
     const auto interface = declare_parameter<std::string>("interface", "can0");
     transport_ = std::make_unique<can_ros2_bridge::CanTransport>(interface);
@@ -36,6 +49,12 @@ public:
       can_ros2_bridge::Rk3588Protocol::kNodeId,
       static_cast<long>(kHeartbeatTimeout.count()),
       can_ros2_bridge::Rk3588Protocol::kFeedbackId);
+
+    manual_enable_ =
+      std::make_unique<can_ros2_bridge::ManualEnableController>(
+      *this, [this](const std::uint32_t control_bits) {
+        return send_manual_enable(control_bits);
+      });
 
     send_global_enable(false);
     receive_thread_ = std::thread(&CanBridgeNode::receive_loop, this);
@@ -54,6 +73,7 @@ private:
   {
     const auto frame = can_ros2_bridge::Rk3588Protocol::make_global_enable_frame(enabled);
     try {
+      const std::lock_guard<std::mutex> lock(send_mutex_);
       transport_->send(frame, 100ms);
       RCLCPP_INFO(
         get_logger(), "Sent global %s: CAN ID=0x%X data=[0x%02X, 0x%02X]",
@@ -63,11 +83,12 @@ private:
     }
   }
 
-  void send_manual_enable(const std::uint32_t control_bits)
+  bool send_manual_enable(const std::uint32_t control_bits)
   {
     const auto frame = can_ros2_bridge::Rk3588Protocol::make_manual_enable_frame(
       control_bits);
     try {
+      const std::lock_guard<std::mutex> lock(send_mutex_);
       transport_->send(frame, 100ms);
       RCLCPP_INFO(
         get_logger(),
@@ -75,15 +96,10 @@ private:
         "data=[0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X]",
         static_cast<unsigned int>(control_bits), frame.id, frame.data[0], frame.data[1],
         frame.data[2], frame.data[3], frame.data[4]);
+      return true;
     } catch (const std::exception & error) {
       RCLCPP_ERROR(get_logger(), "Failed to send manual enable command: %s", error.what());
-    }
-  }
-
-  void handle_state_change(const std::optional<bool> & enabled)
-  {
-    if (enabled.has_value()) {
-      send_global_enable(enabled.value());
+      return false;
     }
   }
 
@@ -110,7 +126,7 @@ private:
         const auto frame = transport_->receive(kReceivePollInterval);
         log_frame(frame);
         if (can_ros2_bridge::Rk3588Protocol::is_heartbeat(frame)) {
-          handle_state_change(watchdog_.on_heartbeat());
+          heartbeat_controller_.on_heartbeat();
         }
       } catch (const drivers::socketcan::SocketCanTimeout &) {  
         // Poll timeout is expected; check for a lost heartbeat below.
@@ -119,12 +135,14 @@ private:
         break;
       }
 
-      handle_state_change(watchdog_.check_timeout());
+      heartbeat_controller_.check_timeout();
     }
   }
 
   std::unique_ptr<can_ros2_bridge::CanTransport> transport_;
-  can_ros2_bridge::HeartbeatWatchdog watchdog_;
+  can_ros2_bridge::HeartbeatController heartbeat_controller_;
+  std::unique_ptr<can_ros2_bridge::ManualEnableController> manual_enable_;
+  std::mutex send_mutex_;
   std::atomic_bool running_;
   std::thread receive_thread_;
 };

@@ -9,21 +9,23 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(ros2_socketcan REQUIRED)
+find_package(std_msgs REQUIRED)
 
 add_library(can_ros2_bridge_core
-  src/socketcan_transport.cpp
-  src/heartbeat_monitor.cpp
-  src/rk3588_can_protocol.cpp
+  src/manual_enable.cpp
+  src/can_transport.cpp
+  src/heartbeat.cpp
+  src/rk3588_protocol.cpp
 )
 target_include_directories(can_ros2_bridge_core PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
-ament_target_dependencies(can_ros2_bridge_core ros2_socketcan)
+ament_target_dependencies(can_ros2_bridge_core rclcpp ros2_socketcan std_msgs)
 
-add_executable(can_receiver_node src/can_bridge_node.cpp)
+add_executable(can_receiver_node src/bridge_node.cpp)
 target_include_directories(can_receiver_node PRIVATE include)
-ament_target_dependencies(can_receiver_node rclcpp ros2_socketcan)
+ament_target_dependencies(can_receiver_node rclcpp ros2_socketcan std_msgs)
 target_link_libraries(can_receiver_node can_ros2_bridge_core)
 
 install(TARGETS can_ros2_bridge_core can_receiver_node
@@ -47,5 +49,5 @@ endif()
 
 ament_export_include_directories(include)
 ament_export_libraries(can_ros2_bridge_core)
-ament_export_dependencies(ros2_socketcan)
+ament_export_dependencies(rclcpp ros2_socketcan std_msgs)
 ament_package()
