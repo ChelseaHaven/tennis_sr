@@ -25,6 +25,12 @@ static uint8_t pressure_has_sent;
 static uint32_t pressure_last_request_tick;
 static uint32_t pressure_request_started_tick;
 
+/**
+ * @brief 计算 Modbus RTU 帧的 CRC16 校验值。
+ * @param data 待校验的数据缓冲区。
+ * @param length 数据字节数。
+ * @return 16 位 CRC 值，低字节在前发送。
+ */
 static uint16_t Pressure_Crc16(const uint8_t *data, uint16_t length)
 {
     uint16_t crc = 0xFFFFU;
@@ -43,6 +49,11 @@ static uint16_t Pressure_Crc16(const uint8_t *data, uint16_t length)
     return crc;
 }
 
+/**
+ * @brief 构造读取一个压力传感器寄存器的 Modbus 请求帧。
+ * @param address 压力传感器从站地址。
+ * @param[out] request 用于接收 8 字节请求帧的缓冲区。
+ */
 static void Pressure_BuildReadRequest(uint8_t address, uint8_t request[8])
 {
     uint16_t crc;
@@ -58,6 +69,11 @@ static void Pressure_BuildReadRequest(uint8_t address, uint8_t request[8])
     request[7] = (uint8_t)(crc >> 8U);
 }
 
+/**
+ * @brief 将压力传感器从站地址映射到数据数组下标。
+ * @param address 待查找的从站地址。
+ * @return 找到时返回数组下标，否则返回 -1。
+ */
 static int Pressure_AddressIndex(uint8_t address)
 {
     uint8_t sensor_index;
@@ -70,6 +86,11 @@ static int Pressure_AddressIndex(uint8_t address)
     return -1;
 }
 
+/**
+ * @brief 校验已接收的压力传感器帧并更新对应数据缓存。
+ * @param data 用于保存传感器读数和时效信息的数组。
+ * @return 收到并处理有效帧时返回 1，否则返回 0。
+ */
 static uint8_t Pressure_ProcessReceivedFrame(PressureData_t data[PRESSURE_SENSOR_COUNT])
 {
     uint8_t frame[PRESSURE_FRAME_LENGTH];
@@ -114,7 +135,6 @@ static uint8_t Pressure_ProcessReceivedFrame(PressureData_t data[PRESSURE_SENSOR
     return 1U;
 }
 
-/* Application API: advances the two-address poller and returns cached readings. */
 void Pressure_Process(PressureData_t data[PRESSURE_SENSOR_COUNT])
 {
     uint32_t now;
@@ -159,7 +179,6 @@ void Pressure_Process(PressureData_t data[PRESSURE_SENSOR_COUNT])
 
 }
 
-/* UART5's one-byte receive callback forwards each byte here. */
 void Pressure_RxByte(uint8_t byte)
 {
     if ((pressure_request_active == 0U) || (pressure_frame_ready != 0U)) {

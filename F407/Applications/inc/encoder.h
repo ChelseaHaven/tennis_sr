@@ -27,12 +27,41 @@ typedef struct
 
 extern EncoderData_t motor_encoder;
 
+/**
+ * @brief 清零电机转速缓存。
+ */
 void encoder_init(void);
+/**
+ * @brief 更新所有底盘和发球机电机的缓存转速。
+ */
 void encoder_process(void);
+/**
+ * @brief 读取底盘电机上报转速并换算为线速度。
+ * @param motor_id 底盘电机节点 ID。
+ * @param[out] speed_mm_s 用于接收修正方向后的线速度，单位 mm/s。
+ * @return 成功时返回 1，否则返回 0。
+ */
 uint8_t encoder_get_chassis_speed_mm_s(uint8_t motor_id, int32_t *speed_mm_s);
-uint8_t encoder_get_launcher_speed_erpm(uint8_t motor_id,
-                                        int32_t *speed_erpm);
+/**
+ * @brief 读取发球机电机上报的电气转速。
+ * @param motor_id 发球机电机节点 ID。
+ * @param[out] speed_erpm 用于接收转速；8 号节点会进行方向修正。
+ * @return 成功时返回 1，否则返回 0。
+ */
+uint8_t encoder_get_launcher_speed_erpm(uint8_t motor_id, int32_t *speed_erpm);
+/**
+ * @brief 将底盘电机电气转速换算为车轮线速度。
+ * @param motor_id 底盘电机节点 ID。
+ * @param speed_erpm 测得的电气转速，单位 eRPM。
+ * @return 修正方向后的线速度，单位 mm/s；节点无效时返回 0。
+ */
 int32_t encoder_erpm_to_mm_s(uint8_t motor_id, int32_t speed_erpm);
+/**
+ * @brief 将底盘车轮目标线速度换算为电机电气转速。
+ * @param motor_id 底盘电机节点 ID。
+ * @param speed_mm_s 目标线速度，单位 mm/s。
+ * @return 修正方向后的电气转速，单位 eRPM；节点无效时返回 0。
+ */
 int32_t encoder_mm_s_to_erpm(uint8_t motor_id, int32_t speed_mm_s);
 
 #endif

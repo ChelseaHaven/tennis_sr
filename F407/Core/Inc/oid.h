@@ -67,19 +67,68 @@ typedef struct
     uint8_t type;
 } OidDataValue_t;
 
+/**
+ * @brief 初始化 OID 遥测缓存和查询、心跳轮询状态。
+ */
 void oid_init(void);
+/**
+ * @brief 校验并解析一帧 OID 电机反馈，更新对应遥测缓存。
+ * @param frame 待处理的 CAN 接收帧；空指针、非 OID 帧或格式错误帧会被忽略。
+ */
 void oid_handle_can_rx_frame(const CanFifoFrame_t *frame);
 
+/**
+ * @brief 根据各遥测项的超时阈值更新数据年龄和新鲜度。
+ */
 void oid_refresh_freshness(void);
+/**
+ * @brief 轮询一个 OID 节点的电气转速数据项。
+ */
 void oid_process_speed_queries(void);
+/**
+ * @brief 轮询发送一个 OID 节点的心跳帧。
+ */
 void oid_process_heartbeats(void);
+/**
+ * @brief 轮询一个非转速 OID 遥测数据项。
+ */
 void oid_process_queries(void);
 
+/**
+ * @brief 复制指定节点和数据项的遥测缓存。
+ * @param node_id OID 节点 ID。
+ * @param item OID 数据项编号，使用 OID_DATA_* 定义。
+ * @param[out] out_value 用于接收遥测数据副本。
+ * @return 参数有效时返回 1，否则返回 0；数据状态需检查 time_info 字段。
+ */
 uint8_t oid_get_data_value(uint8_t node_id, uint8_t item, OidDataValue_t *out_value);
 
+/**
+ * @brief 将指定 OID 节点的心跳帧加入 CAN 发送队列。
+ * @param node_id OID 节点 ID。
+ * @return 入队状态；节点无效时返回 HAL_ERROR。
+ */
 HAL_StatusTypeDef oid_send_heartbeat(uint8_t node_id);
+/**
+ * @brief 将指定电流命令加入 OID CAN 发送队列。
+ * @param node_id OID 节点 ID。
+ * @param current 电流命令值。
+ * @return 入队状态；节点无效时返回 HAL_ERROR。
+ */
 HAL_StatusTypeDef oid_send_current(uint8_t node_id, int16_t current);
+/**
+ * @brief 将指定电气转速命令加入 OID CAN 发送队列。
+ * @param node_id OID 节点 ID。
+ * @param speed_erpm 目标电气转速，单位 eRPM。
+ * @return 入队状态；节点无效时返回 HAL_ERROR。
+ */
 HAL_StatusTypeDef oid_send_speed_erpm(uint8_t node_id, int32_t speed_erpm);
+/**
+ * @brief 将指定遥测项的查询命令加入 OID CAN 发送队列。
+ * @param node_id OID 节点 ID。
+ * @param item 要查询的数据项编号，范围为 0 到 OID_DATA_ITEM_COUNT - 1。
+ * @return 入队状态；节点或数据项无效时返回 HAL_ERROR。
+ */
 HAL_StatusTypeDef oid_send_query(uint8_t node_id, uint8_t item);
 
 #endif

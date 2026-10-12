@@ -47,31 +47,64 @@ static uint8_t oid_query_cursor = 0U;
 static uint8_t oid_speed_query_node_id = OID_NODE_ID_MIN;
 static uint8_t oid_heartbeat_node_id = OID_NODE_ID_MIN;
 
+/**
+ * @brief 检查节点 ID 是否属于当前 OID 节点范围。
+ * @param node_id 待检查的节点 ID。
+ * @return 节点 ID 有效返回 1，否则返回 0。
+ */
 static uint8_t oid_node_valid(uint8_t node_id)
 {
     return (uint8_t)((node_id >= OID_NODE_ID_MIN) && (node_id <= OID_NODE_ID_MAX));
 }
 
+/**
+ * @brief 将指定标准 CAN 帧加入 CAN 发送队列。
+ * @param std_id 标准帧 ID。
+ * @param data CAN 数据缓冲区。
+ * @param length 数据长度。
+ * @return CAN 发送队列返回的 HAL 状态。
+ */
 static HAL_StatusTypeDef oid_send_frame(uint16_t std_id, const uint8_t *data, uint8_t length)
 {
     return can_fifo_tx_push(std_id, data, length);
 }
 
+/**
+ * @brief 按大端序读取 16 位无符号整数。
+ * @param data 指向两个数据字节的指针。
+ * @return 解析后的数值。
+ */
 static uint16_t oid_read_u16_be(const uint8_t *data)
 {
     return (uint16_t)(((uint16_t)data[0] << 8U) | (uint16_t)data[1]);
 }
 
+/**
+ * @brief 按大端序读取 16 位有符号整数。
+ * @param data 指向两个数据字节的指针。
+ * @return 解析后的数值。
+ */
 static int16_t oid_read_i16_be(const uint8_t *data)
 {
     return (int16_t)oid_read_u16_be(data);
 }
 
+/**
+ * @brief 按大端序读取 32 位无符号整数。
+ * @param data 指向四个数据字节的指针。
+ * @return 解析后的数值。
+ */
 static uint32_t oid_read_u32_be(const uint8_t *data)
 {
     return ((uint32_t)data[0] << 24U) | ((uint32_t)data[1] << 16U) | ((uint32_t)data[2] << 8U) | (uint32_t)data[3];
 }
 
+/**
+ * @brief 根据遥测数据类型解析 OID 反馈载荷。
+ * @param type OID_VALUE_* 数据类型。
+ * @param payload 指向数据载荷的指针。
+ * @return 解析后的数值；原始字节类型返回 0。
+ */
 static int32_t oid_decode_value(uint8_t type, const uint8_t *payload)
 {
     switch (type)

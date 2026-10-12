@@ -13,6 +13,9 @@ typedef struct{
 	volatile uint8_t disarm_reason;
 } State_flag;
 
+/**
+ * @brief 解析已接收的无线命令，并重新启动 UART3 DMA 接收。
+ */
 void wireless_read(void);
 
 extern State_flag state;

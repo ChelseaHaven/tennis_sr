@@ -48,6 +48,11 @@ HAL_StatusTypeDef can_fifo_tx_push(uint16_t std_id, const uint8_t *data, uint8_t
     return HAL_OK;
 }
 
+/**
+ * @brief 从发送队列取出一帧。
+ * @param[out] frame 用于接收出队帧的结构体。
+ * @return 成功取到帧时返回 1，否则返回 0。
+ */
 static uint8_t can_fifo_tx_pop(CanFifoFrame_t *frame)
 {
     uint8_t has_frame = 0U;
@@ -79,6 +84,11 @@ uint8_t can_fifo_tx_get_pending_count(void)
     return count;
 }
 
+/**
+ * @brief 将硬件收到的一帧加入接收队列并更新最新帧缓存。
+ * @param frame 待入队的接收帧。
+ * @return 入队成功返回 1；空指针或队列已满时返回 0。
+ */
 static uint8_t can_fifo_rx_push(const CanFifoFrame_t *frame)
 {
     if (frame == NULL)
@@ -193,6 +203,10 @@ void can_fifo_tx_process(void)
     }
 }
 
+/**
+ * @brief CAN1 FIFO0 接收中断回调，将硬件帧转存到软件接收队列。
+ * @param hcan 触发回调的 CAN 外设句柄。
+ */
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
     CanFifoFrame_t frame;

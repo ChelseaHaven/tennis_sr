@@ -4,6 +4,11 @@ ROBOT_Wheel  R_Wheel_A,R_Wheel_B,R_Wheel_C,R_Wheel_D;
 ROBOT_Velocity  R_Vel;
 ROBOT_Position  R_Pos;
 
+/**
+ * @brief 处理底盘急停，并在每次进入急停时清零运动状态。
+ * @param run_enable 非零表示运行底盘，零表示急停。
+ * @return 1 表示底盘保持停止，0 表示可以运行。
+ */
 static uint8_t chassis_handle_emergency_stop(uint8_t run_enable)
 {
   static uint8_t emergency_stop_handled = 0U;
@@ -51,7 +56,7 @@ static uint8_t chassis_handle_emergency_stop(uint8_t run_enable)
   return 1U;
 }
 
-float clamp_float(float value, float min_value, float max_value)
+static float clamp_float(float value, float min_value, float max_value)
 {
   if (value > max_value)
   {
@@ -148,7 +153,6 @@ void chassis_control_process(uint8_t run_enable)
   motor_set_chassis_speed_mm_s(MOTOR_ID_REAR_LEFT,   (R_Wheel_C.PWM >= -MOTOR_PWM_ZERO_DEADBAND && R_Wheel_C.PWM <= MOTOR_PWM_ZERO_DEADBAND) ? 0 : (int32_t)R_Wheel_C.PWM);
   motor_set_chassis_speed_mm_s(MOTOR_ID_REAR_RIGHT,  (R_Wheel_D.PWM >= -MOTOR_PWM_ZERO_DEADBAND && R_Wheel_D.PWM <= MOTOR_PWM_ZERO_DEADBAND) ? 0 : (int32_t)R_Wheel_D.PWM);
 
-          // printf("%f,%f,%f,%f\r\n",
-          //     R_Vel.X_target, R_Vel.Y_target, R_Vel.W_target, R_Wheel_D.V_target);
+          // printf("%f,%f,%f,%f\r\n", R_Vel.X_target, R_Vel.Y_target, R_Vel.W_target, R_Wheel_D.V_target);
 
 }

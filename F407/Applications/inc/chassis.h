@@ -61,10 +61,18 @@ extern ROBOT_Wheel  R_Wheel_A,R_Wheel_B,R_Wheel_C,R_Wheel_D;
 extern ROBOT_Velocity  R_Vel;
 extern ROBOT_Position  R_Pos;
 
-float clamp_float(float value, float min_value, float max_value);
+/**
+ * @brief 结合 IMU 航向角，将车轮运动量积分到全局位置。
+ */
 void Global_PositionUpdate(void);
+/**
+ * @brief 将全局坐标系下的目标位置误差转换到车体坐标系。
+ */
 void Global__PositionTransform(void);
-/* run_enable: 1 runs the chassis; 0 triggers the chassis emergency stop. */
+/**
+ * @brief 更新底盘各车轮目标速度并发送电机速度命令。
+ * @param run_enable 非零表示运行，零表示执行底盘急停。
+ */
 void chassis_control_process(uint8_t run_enable);
 
 #endif

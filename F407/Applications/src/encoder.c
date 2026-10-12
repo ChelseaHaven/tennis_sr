@@ -9,6 +9,12 @@
 
 EncoderData_t motor_encoder = {0};
 
+/**
+ * @brief 根据底盘电机配置修正速度方向。
+ * @param motor_id 底盘电机节点 ID。
+ * @param value 修正方向前的速度值。
+ * @return 修正方向后的速度值。
+ */
 static int32_t encoder_apply_chassis_direction(uint8_t motor_id, int32_t value)
 {
     int8_t direction = 1;
@@ -87,6 +93,12 @@ int32_t encoder_mm_s_to_erpm(uint8_t motor_id, int32_t speed_mm_s)
     return (int32_t)(-(((-numerator) + denominator / 2LL) / denominator));
 }
 
+/**
+ * @brief 读取 OID 电机上报的缓存电气转速。
+ * @param motor_id OID 电机节点 ID。
+ * @param[out] speed_erpm 用于接收电气转速，单位 eRPM。
+ * @return 成功取得数值时返回 1，否则返回 0。
+ */
 static uint8_t encoder_get_speed_erpm(uint8_t motor_id, int32_t *speed_erpm)
 {
     OidDataValue_t speed_data;

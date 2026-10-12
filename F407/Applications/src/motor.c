@@ -1,5 +1,11 @@
 #include "motor.h"
 
+/**
+ * @brief 将 OID 电机电气转速命令加入发送队列。
+ * @param motor_id OID 电机节点 ID。
+ * @param speed_erpm 目标电气转速，单位 eRPM。
+ * @return OID 发送操作返回的 HAL 状态。
+ */
 static HAL_StatusTypeDef motor_send_speed_erpm(uint8_t motor_id, int32_t speed_erpm)
 {
     return oid_send_speed_erpm(motor_id, speed_erpm);

@@ -3,6 +3,12 @@
 FlashDataWord_t flash_data[FLASH_DATA_WORD_COUNT] = {0};
 const uint32_t flash_data_word_count = (uint32_t)(sizeof(flash_data) / sizeof(flash_data[0]));
 
+/**
+ * @brief 从预留 Flash 地址读取指定数量的 32 位数据字。
+ * @param[out] data 用于接收读取数据的数组。
+ * @param word_count 读取的数据字数量。
+ * @return 读取成功返回 HAL_OK；参数无效时返回 HAL_ERROR。
+ */
 HAL_StatusTypeDef flash_load_words(FlashDataWord_t *data, uint32_t word_count)
 {
     const volatile uint32_t *flash_word;
@@ -22,6 +28,12 @@ HAL_StatusTypeDef flash_load_words(FlashDataWord_t *data, uint32_t word_count)
     return HAL_OK;
 }
 
+/**
+ * @brief 擦除预留 Flash 扇区并写入指定数量的 32 位数据字。
+ * @param data 待写入的数据数组。
+ * @param word_count 写入的数据字数量。
+ * @return 擦除和写入成功返回 HAL_OK，否则返回对应的 HAL 状态。
+ */
 HAL_StatusTypeDef flash_save_words(const FlashDataWord_t *data, uint32_t word_count)
 {
     FLASH_EraseInitTypeDef erase_config = {0};

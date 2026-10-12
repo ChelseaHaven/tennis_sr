@@ -3,14 +3,19 @@
 #include "usart.h"
 
 static volatile char s_cDataUpdate = 0, s_cCmd = 0xff;
+static uint8_t imu_init_in_progress = 1;
 
 IMU_init imu;
 
 float yaw_start;
 float yaw_error;
 
-//快速计算平方根的倒数
-float invSqrt(float x) {
+/**
+ * @brief 近似计算浮点数的平方根倒数。
+ * @param x 待计算的数值。
+ * @return 1 / sqrt(x) 的近似值。
+ */
+static float invSqrt(float x) {
   float halfx = 0.5f * x;
   float y = x;
   long i = *(long*)&y;
@@ -20,16 +25,23 @@ float invSqrt(float x) {
   return y;
 }
 
+/**
+ * @brief 通过 UART1 向 IMU 发送字节数据。
+ * @param[in] p_data 待发送数据的缓冲区。
+ * @param uiSize 待发送的字节数。
+ */
 static void SensorUartSend(uint8_t *p_data, uint32_t uiSize)
 {
-  //理论上485通信，会有控制收发的引脚，得定义一个引脚，连接对应的口，这里随便写的引脚示例，这里硬件上应该是处理过，所以直接发送数据
+  //理论上485通信，会有控制收发的引脚，得定义一个引脚，连接对应的口，这里随便写的引脚示例，这里硬件上处理过，所以直接发送数据
 	//GPIO_SetBits(GPIOA, GPIO_Pin_1);
 	Uart1Send(p_data, uiSize);
 	//GPIO_ResetBits(GPIOA, GPIO_Pin_1);
 }
 
-static uint8_t imu_init_in_progress = 1;
-
+/**
+ * @brief 初始化期间使用 HAL 延时，之后使用 RTOS 延时。
+ * @param ms 延时时长，单位毫秒。
+ */
 static void imu_delay_ms(uint16_t ms)
 {
     if (imu_init_in_progress != 0U)
@@ -42,11 +54,20 @@ static void imu_delay_ms(uint16_t ms)
     }
 }
 
+/**
+ * @brief 为 WIT 驱动提供延时回调。
+ * @param ms 延时时长，单位毫秒。
+ */
 static void SensorDelayMs(uint16_t ms)
 {
     imu_delay_ms(ms);
 }
 
+/**
+ * @brief 根据 WIT 驱动更新的寄存器设置对应的数据更新标志。
+ * @param uiReg 首个更新的寄存器地址。
+ * @param uiRegNum 连续更新的寄存器数量。
+ */
 static void CopeSensorData(uint32_t uiReg, uint32_t uiRegNum)
 {
 	int i;
@@ -82,6 +103,10 @@ static void CopeSensorData(uint32_t uiReg, uint32_t uiRegNum)
     }
 }
 
+/**
+ * @brief 最多请求三次加速度寄存器，以探测 IMU 是否响应。
+ * @return 加速度数据已更新时返回 1，否则返回 0。
+ */
 static uint8_t ProbeImu(void)
 {
 	uint8_t retry;
@@ -93,6 +118,24 @@ static uint8_t ProbeImu(void)
 		}
 	}
 	return 0;
+}
+
+/**
+ * @brief 等待启动阶段累计收到 7 次航向角更新，并将当前航向角设为零点。
+ */
+static void yaw_initialize_zero(void)
+{
+	uint8_t num = 0U;
+	uint8_t yaw_if_get;
+
+	while (1) {
+		yaw_if_get = imu_data_get();
+		imu_delay_ms(100U);
+		if (yaw_if_get && num++ > 5U) {
+			yaw_init();
+			break;
+		}
+	}
 }
 
 int32_t imu_set_algorithm(IMU_Algorithm algorithm)
@@ -120,10 +163,12 @@ int32_t imu_set_algorithm(IMU_Algorithm algorithm)
 	return WIT_HAL_OK;
 }
 
+/**
+ * @brief 探测 IMU 波特率，并配置为 230400 波特率和九轴模式。
+ * @note 配置成功后会等待航向角更新，以建立初始基准。
+ */
 static void AutoScanSensor(void)
 {
-	uint8_t num = 0;
-	uint8_t yaw_if_get;
 	uint8_t i;
 	uint32_t startup_baud = huart1.Init.BaudRate;
 	uint32_t detected_baud = 0U;
@@ -186,17 +231,11 @@ static void AutoScanSensor(void)
 		return;
 	}
 	printf("IMU ready at 230400\r\n");
-
-	while (1) {
-		yaw_if_get = imu_data_get();
-		imu_delay_ms(100U);
-		if (yaw_if_get && num++ > 5) {
-			yaw_init();
-			break;
-		}
-	}
 }
 
+/**
+ * @brief 处理航向角跨越正负 180 度的跳变，并更新相对航向角。
+ */
 static void yaw_overall(void)
 {
   float yaw_change;
@@ -235,18 +274,6 @@ uint8_t imu_data_get(void)
   WitReadReg(AX, 12);
 	if(s_cDataUpdate)
 	{
-		imu.acc_raw[0] = sReg[AX];
-		imu.acc_raw[1] = sReg[AY];
-		imu.acc_raw[2] = sReg[AZ];
-		imu.gyro_raw[0] = sReg[GX];
-		imu.gyro_raw[1] = sReg[GY];
-		imu.gyro_raw[2] = sReg[GZ];
-		imu.mag_raw[0] = sReg[HX];
-		imu.mag_raw[1] = sReg[HY];
-		imu.mag_raw[2] = sReg[HZ];
-		imu.angle_raw[0] = sReg[Roll];
-		imu.angle_raw[1] = sReg[Pitch];
-		imu.angle_raw[2] = sReg[Yaw];
 		imu.acc_x = sReg[AX] / 32768.0f * 16.0f;
 		imu.acc_y = sReg[AY] / 32768.0f * 16.0f;
 		imu.acc_z = sReg[AZ] / 32768.0f * 16.0f;
@@ -300,5 +327,6 @@ void imu_init(void)
     WitDelayMsRegister(SensorDelayMs);
     imu_delay_ms(300U);
     AutoScanSensor();
+	yaw_initialize_zero();
     imu_init_in_progress = 0U;
 }

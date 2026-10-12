@@ -26,16 +26,31 @@ static const uint16_t rk3588_timeout_ms[RK3588_DATA_ITEM_COUNT] =
     150U, 150U, 150U, 150U
 };
 
+/**
+ * @brief 按大端序解析两个字节的无符号整数。
+ * @param data 指向数据载荷首字节的指针。
+ * @return 解析后的无符号整数。
+ */
 static uint16_t rk3588_read_u16_be(const uint8_t *data)
 {
     return (uint16_t)(((uint16_t)data[0] << 8U) | (uint16_t)data[1]);
 }
 
+/**
+ * @brief 按大端序解析两个字节的有符号整数。
+ * @param data 指向数据载荷首字节的指针。
+ * @return 解析后的有符号整数。
+ */
 static int16_t rk3588_read_i16_be(const uint8_t *data)
 {
     return (int16_t)rk3588_read_u16_be(data);
 }
 
+/**
+ * @brief 按大端序解析四个字节的无符号整数。
+ * @param data 指向数据载荷首字节的指针。
+ * @return 解析后的无符号整数。
+ */
 static uint32_t rk3588_read_u32_be(const uint8_t *data)
 {
     return ((uint32_t)data[0] << 24U) |
@@ -44,6 +59,11 @@ static uint32_t rk3588_read_u32_be(const uint8_t *data)
            (uint32_t)data[3];
 }
 
+/**
+ * @brief 按小端序解析四个字节的无符号整数。
+ * @param data 指向数据载荷首字节的指针。
+ * @return 解析后的无符号整数。
+ */
 static uint32_t rk3588_read_u32_le(const uint8_t *data)
 {
     return (uint32_t)data[0] |
@@ -52,6 +72,12 @@ static uint32_t rk3588_read_u32_le(const uint8_t *data)
            ((uint32_t)data[3] << 24U);
 }
 
+/**
+ * @brief 根据数值类型解析一条 RK3588 命令的数据载荷。
+ * @param type Rk3588ValueType_t 中定义的数值类型。
+ * @param payload 指向数据载荷的指针。
+ * @return 解析后的数值；不支持的类型返回 0。
+ */
 static int32_t rk3588_decode_value(uint8_t type, const uint8_t *payload)
 {
     switch (type)

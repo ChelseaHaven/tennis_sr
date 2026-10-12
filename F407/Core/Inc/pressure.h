@@ -21,13 +21,23 @@ typedef struct
 
 extern PressureData_t pressure_data[PRESSURE_SENSOR_COUNT];
 
-/* Initialize pressure polling state before the RTOS scheduler starts. */
+/**
+ * @brief 初始化压力传感器轮询状态及各传感器数据。
+ * @param data 用于保存各传感器读数和时效信息的数组。
+ */
 void Pressure_Init(PressureData_t data[PRESSURE_SENSOR_COUNT]);
 
-/* Call periodically (e.g. every 10-50 ms); queries alternate every 50 ms. */
+/**
+ * @brief 处理压力传感器收发状态并更新读数及数据时效。
+ * @param data 保存各传感器读数和时效信息的数组。
+ * @note 应由任务周期性调用；模块按地址轮询传感器，并处理响应超时。
+ */
 void Pressure_Process(PressureData_t data[PRESSURE_SENSOR_COUNT]);
 
-/* UART5 byte-receive callback forwards each received byte here. */
+/**
+ * @brief 将 UART5 收到的单个字节交给压力传感器帧接收器处理。
+ * @param byte UART5 收到的字节。
+ */
 void Pressure_RxByte(uint8_t byte);
 
 #ifdef __cplusplus

@@ -59,6 +59,12 @@ static const uint8_t __auchCRCLo[256] = {
 };
 
 
+/**
+ * @brief 计算 WIT Modbus 帧使用的 CRC16 校验值。
+ * @param puchMsg 待校验数据缓冲区。
+ * @param usDataLen 待校验字节数。
+ * @return 计算得到的 16 位 CRC 值。
+ */
 static uint16_t __CRC16(uint8_t *puchMsg, uint16_t usDataLen)
 {
     uint8_t uchCRCHi = 0xFF;
@@ -75,6 +81,12 @@ static uint16_t __CRC16(uint8_t *puchMsg, uint16_t usDataLen)
     }
     return (uint16_t)(((uint16_t)uchCRCHi << 8) | (uint16_t)uchCRCLo) ;
 }
+/**
+ * @brief 计算 WIT 普通串口帧的 8 位累加校验和。
+ * @param data 待校验数据缓冲区。
+ * @param len 待累加字节数。
+ * @return 8 位累加校验值。
+ */
 static uint8_t __CaliSum(uint8_t *data, uint32_t len)
 {
     uint32_t i;
@@ -88,6 +100,12 @@ int32_t WitSerialWriteRegister(SerialWrite Write_func)
     p_WitSerialWriteFunc = Write_func;
     return WIT_HAL_OK;
 }
+/**
+ * @brief 按 WIT 数据包类型写入寄存器缓存并通知更新回调。
+ * @param ucIndex WIT 数据包类型编号。
+ * @param p_data 已解析的数据字数组。
+ * @param uiLen 数据字数量。
+ */
 static void CopeWitData(uint8_t ucIndex, uint16_t *p_data, uint32_t uiLen)
 {
     uint32_t uiReg1 = 0, uiReg2 = 0, uiReg1Len = 0, uiReg2Len = 0;
