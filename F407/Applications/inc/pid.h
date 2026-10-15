@@ -18,6 +18,16 @@ extern pid_value motor_speed_pid[4];
 extern pid_value car_position_pid[3];
 
 /**
+ * @brief 设置 PID 控制器的比例、积分和微分增益。
+ * @param pid 要设置的 PID 控制器。
+ * @param Kp 比例增益。
+ * @param Ki 积分增益。
+ * @param Kd 微分增益。
+ * @note 只更新增益，不清除误差历史或当前输出。
+ */
+void PidSet(pid_value *pid, float Kp, float Ki, float Kd);
+
+/**
  * @brief 更新增量式 PID 控制器。
  * @param target 目标值。
  * @param current 当前测量值。

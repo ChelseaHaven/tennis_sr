@@ -3,6 +3,18 @@
 pid_value motor_speed_pid[4];  //电机速度环PID参数结构体
 pid_value car_position_pid[3];  //车位置环PID参数结构体
 
+void PidSet(pid_value *pid, float Kp, float Ki, float Kd)
+{
+    if (pid == 0)
+    {
+        return;
+    }
+
+    pid->Kp = Kp;
+    pid->Ki = Ki;
+    pid->Kd = Kd;
+}
+
 float PidIncCtl(float target, float current, pid_value *pid)
 {
     pid->Ek = target - current;
@@ -40,19 +52,19 @@ float PidPosCtl(float target, float current, pid_value *pid)
 void PidCtl_Init(void)
 {
   //电机速度环PID参数初始化
-  motor_speed_pid[0].Kp = 0.51;   //电机A速度环比例系数
+  motor_speed_pid[0].Kp = 0.9;   //电机A速度环比例系数
   motor_speed_pid[0].Ki = 0.09;  //电机A速度环微分系数
   motor_speed_pid[0].Kd = 0.11;
   
-  motor_speed_pid[1].Kp = 0.51;   //电机B速度环比例系数
+  motor_speed_pid[1].Kp = 0.9;   //电机B速度环比例系数
   motor_speed_pid[1].Ki = 0.09;  //电机B速度环微分系数
   motor_speed_pid[1].Kd = 0.11;
   
-  motor_speed_pid[2].Kp = 0.51;   //电机C速度环比例系数
+  motor_speed_pid[2].Kp = 0.9;   //电机C速度环比例系数
   motor_speed_pid[2].Ki = 0.09;  //电机C速度环微分系数
   motor_speed_pid[2].Kd = 0.11;
   
-  motor_speed_pid[3].Kp = 0.51;   //电机D速度环比例系数
+  motor_speed_pid[3].Kp = 0.9;   //电机D速度环比例系数
   motor_speed_pid[3].Ki = 0.09;  //电机D速度环微分系数
   motor_speed_pid[3].Kd = 0.11;
 
