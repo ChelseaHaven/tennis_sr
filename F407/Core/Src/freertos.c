@@ -197,13 +197,17 @@ void Start_chassis_Task(void const * argument)
       // R_Vel.Y_target = 0.0f;
       // R_Vel.W_target = 0.0f;
 
-      // R_Vel.X_target = (float)wireless_test[0];
-      // R_Vel.Y_target = (float)wireless_test[1];
-      // R_Vel.W_target = (float)wireless_test[2];
-    //encoder_process();
-    //chassis_control_process((uint8_t)(wireless_test[3] == 0.0f));
+      R_Pos.X_global_target = (float)wireless_test[0];
+      R_Pos.Y_global_target = (float)wireless_test[1];
+      R_Pos.W_global_target = DEG_TO_RAD((float)wireless_test[2]);
+    encoder_process();
+    chassis_control_process(wireless_test[3]);
 
-      // printf("%f,%f,%f\r\n", R_Vel.X_target, R_Vel.Y_target, R_Vel.W_target);
+      printf("%f,%f,%f,%f,%f,%f,%f,%f\r\n",
+             R_Wheel_A.V_target, R_Wheel_A.V_real,
+             R_Wheel_B.V_target, R_Wheel_B.V_real,
+             R_Wheel_C.V_target, R_Wheel_C.V_real,
+             R_Wheel_D.V_target, R_Wheel_D.V_real);
 
     //printf("%f,%f\r\n",R_Pos.W_global_target,imu.yaw_total);
   // Keep this high-rate telemetry trace disabled.
@@ -248,7 +252,7 @@ void Start_launcher_Task(void const * argument)
 
     uint8_t chassis_enabled = rk3588_is_enabled(RK3588_MANUAL_ENABLE_CHASSIS_MASK);
     uint8_t launcher_enabled = rk3588_is_enabled(RK3588_MANUAL_ENABLE_LAUNCHER_MASK);
-    printf("chassis_enabled=%u, launcher_enabled=%u\r\n", (unsigned)chassis_enabled, (unsigned)launcher_enabled);
+    // printf("chassis_enabled=%u, launcher_enabled=%u\r\n", (unsigned)chassis_enabled, (unsigned)launcher_enabled);
 
 
 
@@ -297,16 +301,16 @@ void Start_can_task(void const * argument)
       can_task_5ms_counter = 0U;
 
       rk3588_refresh_freshness();
-      //oid_refresh_freshness();
-      //oid_process_speed_queries();  // �? 5 ms 查询�?个节点的速度�?6 个节点一轮约 30 ms
-      //oid_process_heartbeats();     // �? 5 ms 查询�?个节点的速度�?6 个节点一轮约 30 ms
+      oid_refresh_freshness();
+      oid_process_speed_queries();  // �? 5 ms 查询�?个节点的速度�?6 个节点一轮约 30 ms
+      oid_process_heartbeats();     // �? 5 ms 查询�?个节点的速度�?6 个节点一轮约 30 ms
     }
 
     can_task_20ms_counter++;
     if (can_task_20ms_counter >= 20)
     {
       can_task_20ms_counter = 0U;
-      //oid_process_queries();        //�? 20 ms 查询�?个节点的�?项非速度数据�?72 项轮询一轮约 1440 ms
+      oid_process_queries();        //�? 20 ms 查询�?个节点的�?项非速度数据�?72 项轮询一轮约 1440 ms
     }
 
     can_task_100ms_counter++;

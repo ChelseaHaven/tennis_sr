@@ -9,8 +9,8 @@
 #define DEG_TO_RAD(x) ((x) * 3.1415926f / 180.0f)
 #define RAD_TO_DEG(x) ((x) * 180.0f / 3.1415926f)
 
-#define R_VX_LIMIT  2000   //X轴速度限值 mm/s
-#define R_VY_LIMIT  2000   //Y轴速度限值 mm/s
+#define R_VX_LIMIT  4400   //X轴速度限值 mm/s
+#define R_VY_LIMIT  4400   //Y轴速度限值 mm/s
 #define R_VW_LIMIT  3140   //W旋转角速度限值rad/s*1000
 
 typedef struct  

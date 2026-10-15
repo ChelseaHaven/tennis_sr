@@ -226,8 +226,8 @@ static void AutoScanSensor(void)
 		printf("IMU at 230400 not confirmed\r\n");
 		return;
 	}
-	if (imu_set_algorithm(IMU_ALGORITHM_9_AXIS) != WIT_HAL_OK) {
-		printf("IMU 9-axis algorithm setup failed\r\n");
+	if (imu_set_algorithm(IMU_ALGORITHM_6_AXIS) != WIT_HAL_OK) {
+		printf("IMU 6-axis algorithm setup failed\r\n");
 		return;
 	}
 	printf("IMU ready at 230400\r\n");
