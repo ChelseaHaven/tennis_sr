@@ -25,7 +25,8 @@ typedef enum
     RK3588_VALUE_I32,
     RK3588_VALUE_U32,
     RK3588_VALUE_U32_LE,
-    RK3588_VALUE_RAW
+    RK3588_VALUE_RAW,
+    RK3588_VALUE_I16X3
 } Rk3588ValueType_t;
 
 typedef struct
@@ -43,6 +44,19 @@ typedef struct
  */
 HAL_StatusTypeDef rk3588_send_heartbeat(void);
 /**
+ * @brief 向 RK3588 发送命令字节和三个大端有符号 int16 值。
+ * @param command 命令字节。
+ * @param value0 第一个数值。
+ * @param value1 第二个数值。
+ * @param value2 第三个数值。
+ * @return CAN 发送队列返回的 HAL 状态。
+ */
+HAL_StatusTypeDef rk3588_data_send_int16x3(
+    uint8_t command,
+    int16_t value0,
+    int16_t value1,
+    int16_t value2);
+/**
  * @brief 校验并缓存从 RK3588 收到的命令帧。
  * @param frame 接收到的 CAN 帧；无关或格式错误的帧会被忽略。
  */
@@ -57,12 +71,19 @@ void rk3588_refresh_freshness(void);
  * @param[out] out_value 用于接收缓存数据快照。
  * @return 参数有效时返回 1，否则返回 0；是否收到数据需检查 valid 字段。
  */
-uint8_t rk3588_get_data_value(uint8_t command, Rk3588DataValue_t *out_value);
+uint8_t rk3588_data_get_value(uint8_t command, Rk3588DataValue_t *out_value);
+/**
+ * @brief 按大端序解析已缓存数据中的三个有符号 int16。
+ * @param item_data 由 rk3588_data_get_value 获取的数据项。
+ * @param[out] out_values 输出的三个数值。
+ * @return 数据项类型为 RK3588_VALUE_I16X3 且长度正确时返回 1，否则返回 0。
+ */
+uint8_t rk3588_data_parse_int16x3(const Rk3588DataValue_t *item_data, int16_t out_values[3]);
 /**
  * @brief 检查最近收到的手动使能命令中的指定标志位。
  * @param enable_mask 要求全部置位的模块使能掩码。
  * @return 所有指定标志位均置位时返回 1，否则返回 0；使能状态保持不变。
  */
-uint8_t rk3588_is_enabled(uint32_t enable_mask);
+uint8_t rk3588_data_is_enabled(uint32_t enable_mask);
 
 #endif

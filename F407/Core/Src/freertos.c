@@ -239,7 +239,7 @@ void Start_launcher_Task(void const * argument)
 
 // Rk3588DataValue_t enable_data;
 
-// rk3588_get_data_value(RK3588_CMD_MANUAL_ENABLE, &enable_data);
+// rk3588_data_get_value(RK3588_CMD_MANUAL_ENABLE, &enable_data);
 
 // printf("chassis_enable=%ld valid=%u fresh=%u age=%lu ms\r\n",
 //        (long)enable_data.value,
@@ -247,8 +247,10 @@ void Start_launcher_Task(void const * argument)
 //        (unsigned)enable_data.time_info.fresh,
 //        (unsigned long)enable_data.time_info.age_ms);
 
-    uint8_t chassis_enabled = rk3588_is_enabled(RK3588_MANUAL_ENABLE_CHASSIS_MASK);
-    uint8_t launcher_enabled = rk3588_is_enabled(RK3588_MANUAL_ENABLE_LAUNCHER_MASK);
+    uint8_t chassis_enabled =
+      rk3588_data_is_enabled(RK3588_MANUAL_ENABLE_CHASSIS_MASK);
+    uint8_t launcher_enabled =
+      rk3588_data_is_enabled(RK3588_MANUAL_ENABLE_LAUNCHER_MASK);
     // printf("chassis_enabled=%u, launcher_enabled=%u\r\n", (unsigned)chassis_enabled, (unsigned)launcher_enabled);
 
 
