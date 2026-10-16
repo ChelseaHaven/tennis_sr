@@ -30,6 +30,7 @@ typedef struct
 
 #include "chassis.h"
 #include "encoder.h"
+#include "imu_get.h"
 #include "imu_calc.h"
 #include "motor.h"
 #include "oid.h"
