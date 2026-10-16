@@ -10,7 +10,7 @@
 
 #include "can_ros2_bridge/can_transport.hpp"
 #include "can_ros2_bridge/heartbeat.hpp"
-#include "can_ros2_bridge/manual_enable.hpp"
+#include "can_ros2_bridge/can_data_controller.hpp"
 #include "can_ros2_bridge/rk3588_protocol.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "ros2_socketcan/socket_can_id.hpp"
@@ -30,11 +30,11 @@ public:
   : Node("can_receiver_node"),
     heartbeat_controller_(kHeartbeatTimeout, [this](const bool enabled) {
       send_global_enable(enabled);
-      if (manual_enable_) {
+      if (can_data_controller_) {
         if (enabled) {
-          manual_enable_->resend_current_state();
+          can_data_controller_->resend_current_state();
         } else {
-          manual_enable_->clear_state();
+          can_data_controller_->clear_state();
         }
       }
     }),
@@ -50,10 +50,13 @@ public:
       static_cast<long>(kHeartbeatTimeout.count()),
       can_ros2_bridge::Rk3588Protocol::kFeedbackId);
 
-    manual_enable_ =
-      std::make_unique<can_ros2_bridge::ManualEnableController>(
+    can_data_controller_ =
+      std::make_unique<can_ros2_bridge::CanDataController>(
       *this, [this](const std::uint32_t control_bits) {
         return send_manual_enable(control_bits);
+      }, [this](const std::uint8_t command, const std::int16_t value0,
+        const std::int16_t value1, const std::int16_t value2) {
+        return send_int16x3(command, value0, value1, value2);
       });
 
     send_global_enable(false);
@@ -103,6 +106,26 @@ private:
     }
   }
 
+  bool send_int16x3(
+    const std::uint8_t command, const std::int16_t value0,
+    const std::int16_t value1, const std::int16_t value2)
+  {
+    const auto frame = can_ros2_bridge::Rk3588Protocol::make_int16x3_frame(
+      command, value0, value1, value2);
+    try {
+      const std::lock_guard<std::mutex> lock(send_mutex_);
+      transport_->send(frame, 100ms);
+      RCLCPP_DEBUG(
+        get_logger(), "Sent int16x3 command 0x%02X: CAN ID=0x%X values=[%d, %d, %d]",
+        command, frame.id, static_cast<int>(value0),
+        static_cast<int>(value1), static_cast<int>(value2));
+      return true;
+    } catch (const std::exception & error) {
+      RCLCPP_ERROR(get_logger(), "Failed to send int16x3 command: %s", error.what());
+      return false;
+    }
+  }
+
   void log_frame(const can_ros2_bridge::CanFrame & frame)
   {
     std::string bytes;
@@ -127,6 +150,8 @@ private:
         log_frame(frame);
         if (can_ros2_bridge::Rk3588Protocol::is_heartbeat(frame)) {
           heartbeat_controller_.on_heartbeat();
+        } else {
+          can_data_controller_->handle_can_frame(frame);
         }
       } catch (const drivers::socketcan::SocketCanTimeout &) {  
         // Poll timeout is expected; check for a lost heartbeat below.
@@ -141,7 +166,7 @@ private:
 
   std::unique_ptr<can_ros2_bridge::CanTransport> transport_;
   can_ros2_bridge::HeartbeatController heartbeat_controller_;
-  std::unique_ptr<can_ros2_bridge::ManualEnableController> manual_enable_;
+  std::unique_ptr<can_ros2_bridge::CanDataController> can_data_controller_;
   std::mutex send_mutex_;
   std::atomic_bool running_;
   std::thread receive_thread_;

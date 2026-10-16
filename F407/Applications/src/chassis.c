@@ -75,13 +75,21 @@ void Global_PositionUpdate(void)
   float dy_body;
   float dx_world;
   float dy_world;
+  const float wheel_lever_arm = MEC_WHEEL_BASE / 2.0f + MEC_ACLE_BASE / 2.0f;
 
-  dx_body = (R_Wheel_A.V_real + R_Wheel_B.V_real + R_Wheel_C.V_real + R_Wheel_D.V_real)/4 * PERIOD_20MS;
-  dy_body = (-R_Wheel_A.V_real + R_Wheel_B.V_real + R_Wheel_C.V_real - R_Wheel_D.V_real)/4 * PERIOD_20MS;
+  R_Vel.X = (R_Wheel_A.V_real + R_Wheel_B.V_real + R_Wheel_C.V_real + R_Wheel_D.V_real) / 4.0f;
+  R_Vel.Y = (-R_Wheel_A.V_real + R_Wheel_B.V_real + R_Wheel_C.V_real - R_Wheel_D.V_real) / 4.0f;
+  R_Vel.W = (-R_Wheel_A.V_real + R_Wheel_B.V_real - R_Wheel_C.V_real + R_Wheel_D.V_real) / (4.0f * wheel_lever_arm);
 
-  // 这个是车自身解算的yaw，当然也可以找个办法融合一下
-  R_Pos.W_global = R_Pos.W_body;
-  // R_Pos.W_global = DEG_TO_RAD(imu.yaw_total);
+  R_Pos.W_body += R_Vel.W * PERIOD_20MS;
+  if (R_Pos.W_body > (float)PI) R_Pos.W_body -= 2.0f * (float)PI;
+  if (R_Pos.W_body < -(float)PI) R_Pos.W_body += 2.0f * (float)PI;
+
+  dx_body = R_Vel.X * PERIOD_20MS;
+  dy_body = R_Vel.Y * PERIOD_20MS;
+
+  // R_Pos.W_global = R_Pos.W_body;
+  R_Pos.W_global = DEG_TO_RAD(imu.yaw_total);
   
   dx_world = dx_body * cosf(R_Pos.W_global) - dy_body * sinf(R_Pos.W_global);
   dy_world = dx_body * sinf(R_Pos.W_global) + dy_body * cosf(R_Pos.W_global);
@@ -117,8 +125,8 @@ void chassis_control_process(uint8_t run_enable)
   // R_Wheel_C.V_real = (float)motor_encoder.rear_left;
   // R_Wheel_D.V_real = (float)motor_encoder.rear_right;
 
-  R_Wheel_A.V_real = (float)motor_encoder.rear_right;
-  R_Wheel_B.V_real = (float)motor_encoder.rear_left;
+  R_Wheel_A.V_real = (float)motor_encoder.front_left;
+  R_Wheel_B.V_real = (float)motor_encoder.front_right;
   R_Wheel_C.V_real = (float)motor_encoder.rear_left;
   R_Wheel_D.V_real = (float)motor_encoder.rear_right;
 
@@ -134,8 +142,7 @@ void chassis_control_process(uint8_t run_enable)
   R_Vel.X_target = PidPosCtl(R_Pos.X_body_error, 0.0f, &car_position_pid[0]);
   R_Vel.Y_target = PidPosCtl(R_Pos.Y_body_error, 0.0f, &car_position_pid[1]);
   R_Vel.W_target = PidPosCtl(R_Pos.W_body_error, 0.0f, &car_position_pid[2]);
-  
-  //error =（target-current,负数输入是因为pid内部也是out=target-current,target时，out=-current=-(-error)=error
+
   R_Vel.X_target = clamp_float(R_Vel.X_target, -R_Vel.X_lim * R_VX_LIMIT, R_Vel.X_lim * R_VX_LIMIT);
   R_Vel.Y_target = clamp_float(R_Vel.Y_target, -R_Vel.Y_lim * R_VY_LIMIT, R_Vel.Y_lim * R_VY_LIMIT);
   R_Vel.W_target = clamp_float(R_Vel.W_target, -R_Vel.W_lim * (R_VW_LIMIT / 1000.0f), R_Vel.W_lim * (R_VW_LIMIT / 1000.0f));

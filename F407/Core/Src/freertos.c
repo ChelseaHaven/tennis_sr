@@ -186,6 +186,19 @@ void Start_chassis_Task(void const * argument)
   /* Infinite loop */
   for(;;)
   {
+
+    Rk3588DataValue_t item;
+    int16_t target[3];
+
+    if (rk3588_data_get_value(RK3588_CMD_TARGET_VELOCITY, &item) &&
+        item.time_info.valid && item.time_info.fresh &&
+        rk3588_data_parse_int16x3(&item, target))
+    {
+      R_Vel.X_target = (float)target[0];
+      R_Vel.Y_target = (float)target[1];
+      R_Vel.W_target = (float)target[2] / 1000.0f;
+    }
+
     // PidSet(&motor_speed_pid[0], wireless_test[6], wireless_test[7], wireless_test[8]);
     // PidSet(&motor_speed_pid[1], wireless_test[6], wireless_test[7], wireless_test[8]);
     // PidSet(&motor_speed_pid[2], wireless_test[6], wireless_test[7], wireless_test[8]);
@@ -203,6 +216,9 @@ void Start_chassis_Task(void const * argument)
       R_Pos.W_global_target = DEG_TO_RAD((float)wireless_test[2]);
     encoder_process();
     chassis_control_process(1);
+
+    (void)rk3588_data_send_int16x3(RK3588_CMD_CHASSIS_VELOCITY, telemetry_float_to_int16(R_Vel.X), telemetry_float_to_int16(R_Vel.Y), telemetry_float_to_int16(R_Vel.W * 1000.0f));
+    (void)rk3588_data_send_int16x3(RK3588_CMD_CHASSIS_POSITION, telemetry_float_to_int16(R_Pos.X_global / 10.0f), telemetry_float_to_int16(R_Pos.Y_global / 10.0f), telemetry_float_to_int16(R_Pos.W_global * 1000.0f));
 
       printf("%f,%f,%f,%f,%f,%f,%f,%f\r\n",
              R_Wheel_A.V_target, R_Wheel_A.V_real,

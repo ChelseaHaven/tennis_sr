@@ -5,18 +5,22 @@
 #include "system.h"
 
 #define RK3588_NODE_ID                  16U
+
 #define RK3588_CMD_HEARTBEAT            0x00U
 #define RK3588_CMD_IMU_GYRO             0x01U
 #define RK3588_CMD_IMU_ACCEL            0x02U
 #define RK3588_CMD_IMU_ATTITUDE         0x03U
+#define RK3588_CMD_CHASSIS_VELOCITY     0x04U
+#define RK3588_CMD_CHASSIS_POSITION     0x05U
+
 #define RK3588_FEEDBACK_ID_OFFSET       0x100U
 #define RK3588_FEEDBACK_ID              (RK3588_FEEDBACK_ID_OFFSET + RK3588_NODE_ID)
 #define RK3588_CMD_CHASSIS_ENABLE       0x00U
 #define RK3588_CMD_MANUAL_ENABLE        0x01U
+#define RK3588_CMD_TARGET_VELOCITY      0x02U
 /* Bit mask carried by RK3588_CMD_MANUAL_ENABLE as a 32-bit little-endian value. */
 #define RK3588_MANUAL_ENABLE_CHASSIS_MASK  (1UL << 0U)
 #define RK3588_MANUAL_ENABLE_LAUNCHER_MASK (1UL << 1U)
-#define RK3588_CMD_02                   0x02U
 #define RK3588_CMD_03                   0x03U
 #define RK3588_DATA_ITEM_COUNT          4U
 
@@ -59,6 +63,12 @@ HAL_StatusTypeDef rk3588_data_send_int16x3(
     int16_t value0,
     int16_t value1,
     int16_t value2);
+/**
+ * @brief 将浮点数四舍五入并饱和转换为 int16。
+ * @param value 要转换的数值。
+ * @return 转换后的 int16 值。
+ */
+int16_t telemetry_float_to_int16(float value);
 /**
  * @brief 校验并缓存从 RK3588 收到的命令帧。
  * @param frame 接收到的 CAN 帧；无关或格式错误的帧会被忽略。

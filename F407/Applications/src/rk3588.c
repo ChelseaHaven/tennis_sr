@@ -141,6 +141,19 @@ HAL_StatusTypeDef rk3588_data_send_int16x3(uint8_t command, int16_t value0, int1
     return can_fifo_tx_push(RK3588_NODE_ID, payload, sizeof(payload));
 }
 
+int16_t telemetry_float_to_int16(float value)
+{
+    if (value >= 32767.0f)
+    {
+        return 32767;
+    }
+    if (value <= -32768.0f)
+    {
+        return -32768;
+    }
+    return (int16_t)lroundf(value);
+}
+
 void rk3588_handle_can_rx_frame(const CanFifoFrame_t *frame)
 {
     Rk3588DataValue_t *item_data;
