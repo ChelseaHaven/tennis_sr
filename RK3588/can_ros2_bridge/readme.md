@@ -60,3 +60,15 @@ colcon build --packages-select can_ros2_bridge
 source install/setup.bash
 ros2 run can_ros2_bridge can_receiver_node
 ```
+
+也可以直接运行脚本；首次运行会自动构建，默认使用 `can0`：
+
+```bash
+./RK3588/can_ros2_bridge/run.sh
+```
+
+使用其他 SocketCAN 接口时可指定 `CAN_INTERFACE`，例如：
+
+```bash
+CAN_INTERFACE=can1 ./RK3588/can_ros2_bridge/run.sh
+```
