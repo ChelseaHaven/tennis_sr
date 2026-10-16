@@ -29,6 +29,7 @@
 #include "launcher.h"
 #include "oid.h"
 #include "rk3588.h"
+#include "imu_REG.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -153,12 +154,12 @@ void Start_imu_Task(void const * argument)
   {
     //HAL_GPIO_TogglePin(GPIOA, LED1_Pin | LED2_Pin);
 
-    if (imu_data_get() != 0U)
-    {
+    // if (imu_data_get() != 0U)
+    // {
       (void)rk3588_data_send_int16x3(RK3588_CMD_IMU_GYRO, sReg[GX], sReg[GY], sReg[GZ]);
       (void)rk3588_data_send_int16x3(RK3588_CMD_IMU_ACCEL, sReg[AX], sReg[AY], sReg[AZ]);
       (void)rk3588_data_send_int16x3(RK3588_CMD_IMU_ATTITUDE, sReg[Pitch], sReg[Roll], sReg[Yaw]);
-    }
+    // }
 
     // printf("%f,%f,%f\r\n",imu.pitch,imu.roll,imu.yaw_total);
     vTaskDelayUntil(&lastWakeTime, taskPeriod);
@@ -201,7 +202,7 @@ void Start_chassis_Task(void const * argument)
       R_Pos.Y_global_target = (float)wireless_test[1];
       R_Pos.W_global_target = DEG_TO_RAD((float)wireless_test[2]);
     encoder_process();
-    chassis_control_process(wireless_test[3]);
+    chassis_control_process(1);
 
       printf("%f,%f,%f,%f,%f,%f,%f,%f\r\n",
              R_Wheel_A.V_target, R_Wheel_A.V_real,
