@@ -145,9 +145,7 @@ void Start_imu_Task(void const * argument)
   /* USER CODE BEGIN Start_imu_Task */
   /* Infinite loop */
   TickType_t lastWakeTime;
-  const TickType_t taskPeriod = pdMS_TO_TICKS(20U);
-
-
+  const TickType_t taskPeriod = pdMS_TO_TICKS(5U);
 
   lastWakeTime = xTaskGetTickCount();
   /* Infinite loop */
@@ -155,7 +153,12 @@ void Start_imu_Task(void const * argument)
   {
     //HAL_GPIO_TogglePin(GPIOA, LED1_Pin | LED2_Pin);
 
-    imu_data_get();	
+    if (imu_data_get() != 0U)
+    {
+      (void)rk3588_data_send_int16x3(RK3588_CMD_IMU_GYRO, sReg[GX], sReg[GY], sReg[GZ]);
+      (void)rk3588_data_send_int16x3(RK3588_CMD_IMU_ACCEL, sReg[AX], sReg[AY], sReg[AZ]);
+      (void)rk3588_data_send_int16x3(RK3588_CMD_IMU_ATTITUDE, sReg[Pitch], sReg[Roll], sReg[Yaw]);
+    }
 
     // printf("%f,%f,%f\r\n",imu.pitch,imu.roll,imu.yaw_total);
     vTaskDelayUntil(&lastWakeTime, taskPeriod);

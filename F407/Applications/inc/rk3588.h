@@ -6,6 +6,9 @@
 
 #define RK3588_NODE_ID                  16U
 #define RK3588_CMD_HEARTBEAT            0x00U
+#define RK3588_CMD_IMU_GYRO             0x01U
+#define RK3588_CMD_IMU_ACCEL            0x02U
+#define RK3588_CMD_IMU_ATTITUDE         0x03U
 #define RK3588_FEEDBACK_ID_OFFSET       0x100U
 #define RK3588_FEEDBACK_ID              (RK3588_FEEDBACK_ID_OFFSET + RK3588_NODE_ID)
 #define RK3588_CMD_CHASSIS_ENABLE       0x00U

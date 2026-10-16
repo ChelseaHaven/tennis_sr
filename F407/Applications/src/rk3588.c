@@ -111,6 +111,8 @@ static int32_t rk3588_decode_value(uint8_t type, const uint8_t *payload)
             return (int32_t)rk3588_read_u32_be(payload);
         case RK3588_VALUE_U32_LE:
             return (int32_t)rk3588_read_u32_le(payload);
+        case RK3588_VALUE_I16X3:
+            return 0;
         case RK3588_VALUE_RAW:
         default:
             return 0;
