@@ -11,7 +11,6 @@ typedef struct
 
 static Rk3588Telemetry_t rk3588_telemetry;
 static uint32_t rk3588_last_downlink_heartbeat_ms;
-static uint8_t rk3588_downlink_heartbeat_seen;
 static uint8_t rk3588_global_enabled;
 
 static const uint8_t rk3588_reply_dlc[RK3588_DATA_ITEM_COUNT] =
@@ -176,7 +175,6 @@ void rk3588_handle_can_rx_frame(const CanFifoFrame_t *frame)
     {
         taskENTER_CRITICAL();
         rk3588_last_downlink_heartbeat_ms = HAL_GetTick();
-        rk3588_downlink_heartbeat_seen = 1U;
         rk3588_global_enabled = 1U;
         taskEXIT_CRITICAL();
         return;
@@ -229,8 +227,10 @@ void rk3588_refresh_freshness(void)
     Rk3588DataValue_t *value;
     uint32_t now_ms;
     uint8_t command;
+    uint8_t clear_manual_enable;
 
     now_ms = HAL_GetTick();
+    clear_manual_enable = 0U;
     taskENTER_CRITICAL();
     for (command = 0U; command < RK3588_DATA_ITEM_COUNT; command++)
     {
@@ -247,11 +247,20 @@ void rk3588_refresh_freshness(void)
             value->time_info.fresh = 0U;
         }
     }
-    rk3588_global_enabled = (uint8_t)(
-        (rk3588_downlink_heartbeat_seen != 0U) &&
-        ((uint32_t)(now_ms - rk3588_last_downlink_heartbeat_ms) <=
-        RK3588_HEARTBEAT_TIMEOUT_MS));
+    if ((rk3588_global_enabled != 0U) &&
+        ((uint32_t)(now_ms - rk3588_last_downlink_heartbeat_ms) >
+        RK3588_HEARTBEAT_TIMEOUT_MS))
+    {
+        rk3588_global_enabled = 0U;
+        clear_manual_enable = 1U;
+    }
     taskEXIT_CRITICAL();
+
+    if (clear_manual_enable != 0U)
+    {
+        /* Require a fresh manual-enable command after the heartbeat reconnects. */
+        (void)rk3588_data_clear(RK3588_CMD_MANUAL_ENABLE);
+    }
 }
 
 uint8_t rk3588_is_global_enabled(void)

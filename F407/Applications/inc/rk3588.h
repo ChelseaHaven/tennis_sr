@@ -75,7 +75,7 @@ int16_t telemetry_float_to_int16(float value);
  */
 void rk3588_handle_can_rx_frame(const CanFifoFrame_t *frame);
 /**
- * @brief 更新各缓存命令的数据年龄和新鲜度标志。
+ * @brief 更新缓存数据新鲜度和全局使能；下行心跳超时时清除手动使能缓存。
  */
 void rk3588_refresh_freshness(void);
 /**
