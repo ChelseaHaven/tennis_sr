@@ -4,16 +4,14 @@ import math
 from pathlib import Path
 from ament_index_python.packages import get_package_share_directory, get_package_prefix
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, SetEnvironmentVariable, OpaqueFunction
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, SetEnvironmentVariable, OpaqueFunction, Shutdown
 from launch.conditions import IfCondition
-from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
 def launch_nodes(context):
     share = Path(get_package_share_directory('fast_fly_ros2'))
-    gz_share = get_package_share_directory('ros_gz_sim')
     plugin_lib = str(Path(get_package_prefix('mecanum_gz')) / 'lib')
     v_max = float(LaunchConfiguration('v_max').perform(context))
     a_max = float(LaunchConfiguration('a_max').perform(context))
@@ -28,10 +26,14 @@ def launch_nodes(context):
     return [
         SetEnvironmentVariable('GZ_SIM_SYSTEM_PLUGIN_PATH',
                                plugin_lib + ':' + os.environ.get('GZ_SIM_SYSTEM_PLUGIN_PATH', '')),
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(os.path.join(gz_share, 'launch/gz_sim.launch.py')),
-            launch_arguments={'gz_args': ('-r ' if LaunchConfiguration('gui').perform(context) == 'true' else '-r -s ')
-                              + str(share / 'worlds/mecanum.sdf'), 'on_exit_shutdown': 'true'}.items()),
+        # Run gz directly instead of through ros_gz_sim's shell=True wrapper.
+        # The direct child process lets ros2 launch reliably stop Gazebo on Ctrl+C.
+        ExecuteProcess(
+            cmd=['gz', 'sim', '-r'] +
+                ([] if LaunchConfiguration('gui').perform(context) == 'true' else ['-s']) +
+                [str(share / 'worlds/mecanum.sdf'), '--force-version', '8'],
+            name='gazebo', output='screen', on_exit=Shutdown(),
+            sigterm_timeout='5', sigkill_timeout='2'),
         Node(package='ros_gz_sim', executable='create', name='spawn_mecanum',
              arguments=['-world', 'mecanum', '-name', 'nexus_4wd_mecanum',
                         '-string', gz_description, '-z', '0.02'], output='screen'),

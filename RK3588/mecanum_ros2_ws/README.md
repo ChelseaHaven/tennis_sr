@@ -11,8 +11,7 @@ sudo apt update
 sudo apt install -y ros-jazzy-ros-gz ros-jazzy-gz-sim-vendor \
   ros-jazzy-gz-plugin-vendor ros-jazzy-rviz2 ros-jazzy-robot-state-publisher \
   python3-colcon-common-extensions python3-venv python3-pip libx11-dev libxrandr-dev
-cd /home/pi/chenzhihan/tennis_project/tennis_sr/RK3588/mecanum_ros2_ws
-./build.sh
+./RK3588/mecanum_ros2_ws/build.sh
 ```
 
 `build.sh` 使用系统 Python 3.12 编译 ROS 消息，并在 `.venv` 中安装 CasADi。
@@ -24,14 +23,18 @@ cd /home/pi/chenzhihan/tennis_project/tennis_sr/RK3588/mecanum_ros2_ws
 在本机桌面终端执行：
 
 ```bash
-./run_interactive.sh
+./RK3588/mecanum_ros2_ws/run_interactive.sh
 ```
 
 默认只开 RViz2，Gazebo 在后台进行真实物理仿真。需要 Gazebo 窗口时：
 
 ```bash
-./run_interactive.sh gui:=true
+./RK3588/mecanum_ros2_ws/run_interactive.sh gui:=true
 ```
+
+退出时在启动仿真的同一终端按 `Ctrl+C`，launch 会停止它直接启动的 Gazebo 和 ROS 节点。
+若是旧启动遗留的 Gazebo 服务端（`pgrep -af 'gz sim'` 仍能看到），需对对应 PID 单独发送
+`kill -INT <PID>`；新启动方式不会再通过 shell 包装 Gazebo 进程。
 
 脚本默认使用 `ROS_DOMAIN_ID=72`，避免与板上默认域的实车节点混用 `/cmd_vel`。
 其他终端查看仿真话题时也需设置 `ROS_DOMAIN_ID=72`，可通过环境变量覆盖。
@@ -40,7 +43,6 @@ cd /home/pi/chenzhihan/tennis_project/tennis_sr/RK3588/mecanum_ros2_ws
 
 ```bash
 ssh -Y pi@192.168.1.88
-cd /home/pi/chenzhihan/tennis_project/tennis_sr
 ./RK3588/mecanum_ros2_ws/run_interactive.sh
 ```
 
@@ -49,14 +51,14 @@ cd /home/pi/chenzhihan/tennis_project/tennis_sr
 不会显示到 SSH 客户端。脚本强制 Qt 使用 `xcb`。遇到 OpenGL 驱动错误可尝试：
 
 ```bash
-LIBGL_ALWAYS_SOFTWARE=1 ./run_interactive.sh
+LIBGL_ALWAYS_SOFTWARE=1 ./RK3588/mecanum_ros2_ws/run_interactive.sh
 ```
 
 如果当前是普通 SSH 终端，但希望窗口显示在板子的本机桌面，可使用
-`./run_interactive.sh --local-display`。脚本会选择 `:0` 并查找当前用户的
+`./RK3588/mecanum_ros2_ws/run_interactive.sh --local-display`。脚本会选择 `:0` 并查找当前用户的
 XWayland 授权文件；它不会把窗口显示到你的电脑。
 
-无需放开 `xhost +`。只有后台仿真时：`./run_interactive.sh rviz:=false`。
+无需放开 `xhost +`。只有后台仿真时：`./RK3588/mecanum_ros2_ws/run_interactive.sh rviz:=false`。
 
 工程自带 `rviz_x11` 启动器：对没有任何 XRandR 视频模式的无显示器 XWayland，
 仅在 RViz 进程内启用 OGRE 1.12 的屏幕尺寸回退路径，避免启动段错误。
@@ -107,24 +109,54 @@ ROS 与 Gazebo 通过 `ros_gz_bridge` 通信；所有显示/规划节点使用�
 
 ## 接实车
 
-实车应仅启动 planner/tracker 并接入实车 `/odom` 和 `/cmd_vel`，使用实时时钟
-（`use_sim_time:=false`）。不要同时启动 Gazebo 和真实底盘命令接收器。
-实车速度、加速度和 frame 需先校准；本工程默认启动的是仿真。
+实车使用独立启动文件 `real_robot.launch.py`，不启动 Gazebo。它在本工作区内将桥接节点
+提供的 `/chassis/position`、`/chassis/velocity`（`Vector3Stamped`）转换为规划链路需要的
+`/odom`（`nav_msgs/Odometry`），并保留已有的 `/cmd_vel` 下发链路。位置按米、航向按弧度；
+速度为车体坐标系 m/s 和 rad/s。转换器以最新位置和速度组装 odometry，任一上行数据
+超过 0.2 秒未更新就停止发布，tracker 的 odometry watchdog 会随之发零速。
+
+工作区首次使用或代码有改动时，从仓库根目录编译：
+
+```bash
+./RK3588/mecanum_ros2_ws/build.sh
+```
+
+然后从仓库根目录用一条命令启动 CAN 桥接、实车规划和 RViz：
+
+```bash
+./RK3588/mecanum_ros2_ws/run_real_robot_all.sh
+```
+
+该脚本默认使用 `ROS_DOMAIN_ID=0`，并且不会发送底盘使能。按 `Ctrl+C` 会同时停止桥接与
+实车规划节点。若需覆盖 ROS 域，可在启动前设置 `ROS_DOMAIN_ID`；桥接和规划会使用相同域。
+仿真启动脚本 `./RK3588/mecanum_ros2_ws/run_interactive.sh` 默认使用域 72。实车默认规划上限为
+0.3 m/s、0.5 m/s²，可以通过 `v_max:=... a_max:=...` 调整。确认底盘周围安全后，需在
+另一个终端中显式使能底盘：
+
+```bash
+ros2 topic pub --once /manual_enable/chassis std_msgs/msg/UInt8 '{data: 1}'
+```
+
+手动撤销使能时发布 `'{data: 0}'`。全局 CAN 心跳和手动底盘使能都必须正常，规划器才会
+驱动车体。可用 `/f407/connected` 检查 F407 心跳，用 `/odom` 查看合成里程计；RViz 的
+Fixed Frame 为 `odom`。真实底盘的编码器比例、坐标方向、航向符号以及可用速度/加速度
+需要上车校准，当前尚未进行硬件闭环验证。仿真与实车不要同时启动，也不要让多个节点
+同时发布 `/cmd_vel`。
 
 ## 端到端验证
 
 先在终端 A 启动隔离仿真：
 
 ```bash
-ROS_DOMAIN_ID=72 GZ_PARTITION=tennis_migration_test ./run_interactive.sh rviz:=false
+ROS_DOMAIN_ID=72 GZ_PARTITION=tennis_migration_test ./RK3588/mecanum_ros2_ws/run_interactive.sh rviz:=false
 ```
 
 在终端 B（同一工程目录）执行：
 
 ```bash
 source /opt/ros/jazzy/setup.bash
-source install/setup.bash
-ROS_DOMAIN_ID=72 ROS_LOG_DIR="$PWD/.ros/log" python3 tests/verify_sim.py
+source RK3588/mecanum_ros2_ws/install/setup.bash
+ROS_DOMAIN_ID=72 ROS_LOG_DIR="$PWD/RK3588/mecanum_ros2_ws/.ros/log" python3 RK3588/mecanum_ros2_ws/tests/verify_sim.py
 ```
 
 测试检查四轮关节、仿真时钟、负向/侧向运动、指令超时停车、途经点规划、

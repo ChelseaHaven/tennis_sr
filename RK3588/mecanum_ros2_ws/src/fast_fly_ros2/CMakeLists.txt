@@ -8,7 +8,7 @@ target_include_directories(mecanum_x11_guard PRIVATE ${X11_INCLUDE_DIR})
 target_link_libraries(mecanum_x11_guard PRIVATE ${X11_LIBRARIES} ${X11_Xrandr_LIB} ${CMAKE_DL_LIBS})
 install(TARGETS mecanum_x11_guard LIBRARY DESTINATION lib)
 ament_python_install_package(${PROJECT_NAME})
-install(PROGRAMS scripts/planner scripts/tracker scripts/odom_tf scripts/rviz_x11
+install(PROGRAMS scripts/planner scripts/tracker scripts/odom_tf scripts/f407_odom scripts/rviz_x11
   DESTINATION lib/${PROJECT_NAME})
 install(DIRECTORY launch rviz urdf meshes worlds DESTINATION share/${PROJECT_NAME})
 ament_package()

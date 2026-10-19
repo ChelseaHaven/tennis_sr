@@ -130,7 +130,7 @@ void chassis_control_process(uint8_t run_enable)
   R_Wheel_C.V_real = (float)motor_encoder.rear_left;
   R_Wheel_D.V_real = (float)motor_encoder.rear_right;
 
-  // Global_PositionUpdate();
+  Global_PositionUpdate();
   // Global__PositionTransform();
 
   if (chassis_handle_emergency_stop(run_enable) != 0U)
