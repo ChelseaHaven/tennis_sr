@@ -130,8 +130,8 @@ void chassis_control_process(uint8_t run_enable)
   R_Wheel_C.V_real = (float)motor_encoder.rear_left;
   R_Wheel_D.V_real = (float)motor_encoder.rear_right;
 
-  Global_PositionUpdate();
-  Global__PositionTransform();
+  // Global_PositionUpdate();
+  // Global__PositionTransform();
 
   if (chassis_handle_emergency_stop(run_enable) != 0U)
   {
@@ -139,9 +139,9 @@ void chassis_control_process(uint8_t run_enable)
   }
 
   /* Position loop: convert body-frame position errors into velocity targets. */
-  R_Vel.X_target = PidPosCtl(R_Pos.X_body_error, 0.0f, &car_position_pid[0]);
-  R_Vel.Y_target = PidPosCtl(R_Pos.Y_body_error, 0.0f, &car_position_pid[1]);
-  R_Vel.W_target = PidPosCtl(R_Pos.W_body_error, 0.0f, &car_position_pid[2]);
+  // R_Vel.X_target = PidPosCtl(R_Pos.X_body_error, 0.0f, &car_position_pid[0]);
+  // R_Vel.Y_target = PidPosCtl(R_Pos.Y_body_error, 0.0f, &car_position_pid[1]);
+  // R_Vel.W_target = PidPosCtl(R_Pos.W_body_error, 0.0f, &car_position_pid[2]);
 
   R_Vel.X_target = clamp_float(R_Vel.X_target, -R_Vel.X_lim * R_VX_LIMIT, R_Vel.X_lim * R_VX_LIMIT);
   R_Vel.Y_target = clamp_float(R_Vel.Y_target, -R_Vel.Y_lim * R_VY_LIMIT, R_Vel.Y_lim * R_VY_LIMIT);

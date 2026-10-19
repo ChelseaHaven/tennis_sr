@@ -211,9 +211,9 @@ void Start_chassis_Task(void const * argument)
       // R_Vel.Y_target = 0.0f;
       // R_Vel.W_target = 0.0f;
 
-      R_Pos.X_global_target = (float)wireless_test[0];
-      R_Pos.Y_global_target = (float)wireless_test[1];
-      R_Pos.W_global_target = DEG_TO_RAD((float)wireless_test[2]);
+      // R_Pos.X_global_target = (float)wireless_test[0];
+      // R_Pos.Y_global_target = (float)wireless_test[1];
+      // R_Pos.W_global_target = DEG_TO_RAD((float)wireless_test[2]);
     encoder_process();
     chassis_control_process(1);
 
