@@ -37,7 +37,7 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
-"${BRIDGE_SCRIPT}" &
+"${BRIDGE_SCRIPT}" -p "log_can_frames:=${CAN_BRIDGE_LOG_FRAMES:-0}" &
 bridge_pid=$!
 child_pids+=("${bridge_pid}")
 

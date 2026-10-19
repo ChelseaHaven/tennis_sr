@@ -147,26 +147,32 @@ void chassis_control_process(uint8_t run_enable)
   R_Vel.Y_target = clamp_float(R_Vel.Y_target, -R_Vel.Y_lim * R_VY_LIMIT, R_Vel.Y_lim * R_VY_LIMIT);
   R_Vel.W_target = clamp_float(R_Vel.W_target, -R_Vel.W_lim * (R_VW_LIMIT / 1000.0f), R_Vel.W_lim * (R_VW_LIMIT / 1000.0f));
 
-    //运动学解析，由机器人目标速度计算电机轮子速度（mm/s)
+  //   //运动学解析，由机器人目标速度计算电机轮子速度（mm/s)
   R_Wheel_A.V_target = R_Vel.X_target - R_Vel.Y_target - R_Vel.W_target*(MEC_WHEEL_BASE/2+MEC_ACLE_BASE/2);
   R_Wheel_B.V_target = R_Vel.X_target + R_Vel.Y_target + R_Vel.W_target*(MEC_WHEEL_BASE/2+MEC_ACLE_BASE/2);
   R_Wheel_C.V_target = R_Vel.X_target + R_Vel.Y_target - R_Vel.W_target*(MEC_WHEEL_BASE/2+MEC_ACLE_BASE/2);
   R_Wheel_D.V_target = R_Vel.X_target - R_Vel.Y_target + R_Vel.W_target*(MEC_WHEEL_BASE/2+MEC_ACLE_BASE/2);
 
-  R_Wheel_A.PWM = PidIncCtl(R_Wheel_A.V_target, R_Wheel_A.V_real, &motor_speed_pid[0]);
-  R_Wheel_B.PWM = PidIncCtl(R_Wheel_B.V_target, R_Wheel_B.V_real, &motor_speed_pid[1]);
-  R_Wheel_C.PWM = PidIncCtl(R_Wheel_C.V_target, R_Wheel_C.V_real, &motor_speed_pid[2]);
-  R_Wheel_D.PWM = PidIncCtl(R_Wheel_D.V_target, R_Wheel_D.V_real, &motor_speed_pid[3]);
+  // R_Wheel_A.PWM = PidIncCtl(R_Wheel_A.V_target, R_Wheel_A.V_real, &motor_speed_pid[0]);
+  // R_Wheel_B.PWM = PidIncCtl(R_Wheel_B.V_target, R_Wheel_B.V_real, &motor_speed_pid[1]);
+  // R_Wheel_C.PWM = PidIncCtl(R_Wheel_C.V_target, R_Wheel_C.V_real, &motor_speed_pid[2]);
+  // R_Wheel_D.PWM = PidIncCtl(R_Wheel_D.V_target, R_Wheel_D.V_real, &motor_speed_pid[3]);
 
-  R_Wheel_A.PWM = clamp_float(R_Wheel_A.PWM, -R_VX_LIMIT, R_VX_LIMIT);
-  R_Wheel_B.PWM = clamp_float(R_Wheel_B.PWM, -R_VX_LIMIT, R_VX_LIMIT);
-  R_Wheel_C.PWM = clamp_float(R_Wheel_C.PWM, -R_VX_LIMIT, R_VX_LIMIT);
-  R_Wheel_D.PWM = clamp_float(R_Wheel_D.PWM, -R_VX_LIMIT, R_VX_LIMIT);
+  // R_Wheel_A.PWM = clamp_float(R_Wheel_A.PWM, -R_VX_LIMIT, R_VX_LIMIT);
+  // R_Wheel_B.PWM = clamp_float(R_Wheel_B.PWM, -R_VX_LIMIT, R_VX_LIMIT);
+  // R_Wheel_C.PWM = clamp_float(R_Wheel_C.PWM, -R_VX_LIMIT, R_VX_LIMIT);
+  // R_Wheel_D.PWM = clamp_float(R_Wheel_D.PWM, -R_VX_LIMIT, R_VX_LIMIT);
 
-  motor_set_chassis_speed_mm_s(MOTOR_ID_FRONT_LEFT,  (R_Wheel_A.PWM >= -MOTOR_PWM_ZERO_DEADBAND && R_Wheel_A.PWM <= MOTOR_PWM_ZERO_DEADBAND) ? 0 : (int32_t)R_Wheel_A.PWM);
-  motor_set_chassis_speed_mm_s(MOTOR_ID_FRONT_RIGHT, (R_Wheel_B.PWM >= -MOTOR_PWM_ZERO_DEADBAND && R_Wheel_B.PWM <= MOTOR_PWM_ZERO_DEADBAND) ? 0 : (int32_t)R_Wheel_B.PWM);
-  motor_set_chassis_speed_mm_s(MOTOR_ID_REAR_LEFT,   (R_Wheel_C.PWM >= -MOTOR_PWM_ZERO_DEADBAND && R_Wheel_C.PWM <= MOTOR_PWM_ZERO_DEADBAND) ? 0 : (int32_t)R_Wheel_C.PWM);
-  motor_set_chassis_speed_mm_s(MOTOR_ID_REAR_RIGHT,  (R_Wheel_D.PWM >= -MOTOR_PWM_ZERO_DEADBAND && R_Wheel_D.PWM <= MOTOR_PWM_ZERO_DEADBAND) ? 0 : (int32_t)R_Wheel_D.PWM);
+  // motor_set_chassis_speed_mm_s(MOTOR_ID_FRONT_LEFT,  (R_Wheel_A.PWM >= -MOTOR_PWM_ZERO_DEADBAND && R_Wheel_A.PWM <= MOTOR_PWM_ZERO_DEADBAND) ? 0 : (int32_t)R_Wheel_A.PWM);
+  // motor_set_chassis_speed_mm_s(MOTOR_ID_FRONT_RIGHT, (R_Wheel_B.PWM >= -MOTOR_PWM_ZERO_DEADBAND && R_Wheel_B.PWM <= MOTOR_PWM_ZERO_DEADBAND) ? 0 : (int32_t)R_Wheel_B.PWM);
+  // motor_set_chassis_speed_mm_s(MOTOR_ID_REAR_LEFT,   (R_Wheel_C.PWM >= -MOTOR_PWM_ZERO_DEADBAND && R_Wheel_C.PWM <= MOTOR_PWM_ZERO_DEADBAND) ? 0 : (int32_t)R_Wheel_C.PWM);
+  // motor_set_chassis_speed_mm_s(MOTOR_ID_REAR_RIGHT,  (R_Wheel_D.PWM >= -MOTOR_PWM_ZERO_DEADBAND && R_Wheel_D.PWM <= MOTOR_PWM_ZERO_DEADBAND) ? 0 : (int32_t)R_Wheel_D.PWM);
+
+  motor_set_chassis_speed_mm_s(MOTOR_ID_FRONT_LEFT,  (R_Wheel_A.V_target >= -MOTOR_PWM_ZERO_DEADBAND && R_Wheel_A.V_target <= MOTOR_PWM_ZERO_DEADBAND) ? 0 : (int32_t)R_Wheel_A.V_target);
+  motor_set_chassis_speed_mm_s(MOTOR_ID_FRONT_RIGHT, (R_Wheel_B.V_target >= -MOTOR_PWM_ZERO_DEADBAND && R_Wheel_B.V_target <= MOTOR_PWM_ZERO_DEADBAND) ? 0 : (int32_t)R_Wheel_B.V_target);
+  motor_set_chassis_speed_mm_s(MOTOR_ID_REAR_LEFT,   (R_Wheel_C.V_target >= -MOTOR_PWM_ZERO_DEADBAND && R_Wheel_C.V_target <= MOTOR_PWM_ZERO_DEADBAND) ? 0 : (int32_t)R_Wheel_C.V_target);
+  motor_set_chassis_speed_mm_s(MOTOR_ID_REAR_RIGHT,  (R_Wheel_D.V_target >= -MOTOR_PWM_ZERO_DEADBAND && R_Wheel_D.V_target <= MOTOR_PWM_ZERO_DEADBAND) ? 0 : (int32_t)R_Wheel_D.V_target);
+
 
           // printf("%f,%f,%f,%f\r\n", R_Vel.X_target, R_Vel.Y_target, R_Vel.W_target, R_Wheel_D.V_target);
 

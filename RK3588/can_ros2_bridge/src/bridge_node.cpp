@@ -30,6 +30,7 @@ public:
   : Node("can_receiver_node"), running_(true)
   {
     const auto interface = declare_parameter<std::string>("interface", "can0");
+    log_can_frames_ = declare_parameter<int>("log_can_frames", 0) == 1;
     transport_ = std::make_unique<can_ros2_bridge::CanTransport>(interface);
 
     uplink_controller_ = std::make_unique<can_ros2_bridge::F407UplinkController>(
@@ -104,7 +105,9 @@ private:
     while (running_.load() && rclcpp::ok()) {
       try {
         const auto frame = transport_->receive(kReceivePollInterval);
-        log_frame(frame);
+        if (log_can_frames_) {
+          log_frame(frame);
+        }
         uplink_controller_->handle_can_frame(frame);
       } catch (const drivers::socketcan::SocketCanTimeout &) {
         // Poll timeout is expected; check F407 heartbeat freshness below.
@@ -122,6 +125,7 @@ private:
   std::unique_ptr<can_ros2_bridge::CanCommandController> downlink_controller_;
   std::mutex send_mutex_;
   std::atomic_bool running_;
+  bool log_can_frames_{false};
   std::thread receive_thread_;
 };
 

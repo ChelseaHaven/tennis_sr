@@ -98,3 +98,10 @@ ros2 run can_ros2_bridge can_receiver_node
 ```bash
 CAN_INTERFACE=can1 ./RK3588/can_ros2_bridge/run.sh
 ```
+
+默认不打印逐帧接收日志。可用 ROS 参数 `log_can_frames` 控制：`1` 打印，`0` 静默；
+需要排查 CAN 数据时，从仓库根目录这样运行：
+
+```bash
+./RK3588/can_ros2_bridge/run.sh -p log_can_frames:=1
+```
