@@ -34,13 +34,19 @@ sudo apt install ros-jazzy-ros2-socketcan ros-jazzy-ros2-socketcan-msgs
 
 ## 工程模块
 
-- `bridge_node.cpp`：主程序，协调 CAN 收发、协议处理和心跳。
-- `can_data_controller.cpp`：订阅底盘、发球机使能话题，维护控制位并调用 CAN 发送回调；同时解析 MCU 的 IMU 和底盘里程计 CAN 帧、换算并发布向量话题。
+- `bridge_node.cpp`：主程序，管理 SocketCAN 收发，并将收到的帧交给上行处理器。
+- `f407_uplink_controller.cpp`：统一处理 F407 上发数据，包括心跳识别和超时、IMU/底盘数据解析换算、ROS 话题发布。
+- `can_command_controller.cpp`：统一处理 3588 下行，包括订阅 ROS 控制话题、组装并发送 CAN 命令，以及周期下发心跳。
 - `can_transport.cpp`：经典 CAN 通用收发。
 - `rk3588_protocol.cpp`：3588 与单片机间的 CAN 协议和帧编码。
-- `heartbeat.cpp`：`HeartbeatWatchdog` 判断心跳在线状态；`HeartbeatController` 在状态变化时调用回调，主程序通过回调发送全局使能 CAN 命令。超时阈值为 200 ms。
 
-全局使能由心跳监控自动控制，使用 CAN ID `0x110`、命令 `0x00`，数据为 `[0x00, 0x01]`（使能）或 `[0x00, 0x00]`（失能）。心跳识别要求标准帧 CAN ID 为 `0x010`、数据长度恰好为 1，且数据字节为 `0x00`。
+心跳双向使用命令字节 `0x00`，由 CAN ID 区分方向：F407 每 100 ms 通过 `0x010` 上发 `[0x00]`，3588 每 100 ms 通过 `0x110` 下发 `[0x00]`。上行处理器发布 `/f407/connected`（`std_msgs/msg/UInt8`，在线为 `1`，超时为 `0`），状态以 100 ms 周期发布；连续 200 ms 未收到 F407 心跳时状态变为 `0` 并清除 3588 侧缓存控制状态。F407 连续 300 ms 未收到 3588 下行心跳时将全局使能标志置 `0`，并通过该标志门控底盘；收到心跳后标志置 `1`。状态话题名可用 `f407_status_topic` 参数覆盖。
+
+查看 F407 在线状态：
+
+```bash
+ros2 topic echo /f407/connected
+```
 
 底盘目标速度通过 `/cmd_vel`（`geometry_msgs/msg/Twist`）下发，默认取 `linear.x`、`linear.y`、`angular.z`，单位为 m/s、m/s、rad/s。桥接节点分别乘以 1000、四舍五入并饱和到 `int16` 范围，再通过标准 CAN ID `0x110`、命令 `0x02` 和三个大端有符号 `int16` 发送；F407 协议单位为 mm/s、mm/s、mrad/s。控制端应持续发布速度指令。
 

@@ -15,9 +15,9 @@
 
 #define RK3588_FEEDBACK_ID_OFFSET       0x100U
 #define RK3588_FEEDBACK_ID              (RK3588_FEEDBACK_ID_OFFSET + RK3588_NODE_ID)
-#define RK3588_CMD_CHASSIS_ENABLE       0x00U
 #define RK3588_CMD_MANUAL_ENABLE        0x01U
 #define RK3588_CMD_TARGET_VELOCITY      0x02U
+#define RK3588_HEARTBEAT_TIMEOUT_MS     300U
 /* Bit mask carried by RK3588_CMD_MANUAL_ENABLE as a 32-bit little-endian value. */
 #define RK3588_MANUAL_ENABLE_CHASSIS_MASK  (1UL << 0U)
 #define RK3588_MANUAL_ENABLE_LAUNCHER_MASK (1UL << 1U)
@@ -78,6 +78,11 @@ void rk3588_handle_can_rx_frame(const CanFifoFrame_t *frame);
  * @brief 更新各缓存命令的数据年龄和新鲜度标志。
  */
 void rk3588_refresh_freshness(void);
+/**
+ * @brief 查询 RK3588 下行心跳是否仍在超时时间内。
+ * @return 收到过且未超时返回 1，否则返回 0。
+ */
+uint8_t rk3588_is_global_enabled(void);
 /**
  * @brief 复制指定命令的缓存数值和时间信息。
  * @param command RK3588 命令索引。

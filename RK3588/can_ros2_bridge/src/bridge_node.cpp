@@ -1,16 +1,15 @@
 #include <atomic>
 #include <chrono>
 #include <cstdio>
-#include <cstdint>
 #include <exception>
 #include <memory>
 #include <mutex>
 #include <string>
 #include <thread>
 
+#include "can_ros2_bridge/can_command_controller.hpp"
 #include "can_ros2_bridge/can_transport.hpp"
-#include "can_ros2_bridge/heartbeat.hpp"
-#include "can_ros2_bridge/can_data_controller.hpp"
+#include "can_ros2_bridge/f407_uplink_controller.hpp"
 #include "can_ros2_bridge/rk3588_protocol.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "ros2_socketcan/socket_can_id.hpp"
@@ -21,45 +20,42 @@ namespace
 {
 constexpr auto kHeartbeatTimeout = 200ms;
 constexpr auto kReceivePollInterval = 10ms;
+constexpr auto kDownlinkHeartbeatPeriod = 100ms;
 }  // namespace
 
 class CanBridgeNode : public rclcpp::Node
 {
 public:
   CanBridgeNode()
-  : Node("can_receiver_node"),
-    heartbeat_controller_(kHeartbeatTimeout, [this](const bool enabled) {
-      send_global_enable(enabled);
-      if (can_data_controller_) {
-        if (enabled) {
-          can_data_controller_->resend_current_state();
-        } else {
-          can_data_controller_->clear_state();
-        }
-      }
-    }),
-    running_(true)
+  : Node("can_receiver_node"), running_(true)
   {
     const auto interface = declare_parameter<std::string>("interface", "can0");
     transport_ = std::make_unique<can_ros2_bridge::CanTransport>(interface);
 
+    uplink_controller_ = std::make_unique<can_ros2_bridge::F407UplinkController>(
+      *this, kHeartbeatTimeout, [this](const bool connected) {
+        if (!downlink_controller_) {
+          return;
+        }
+        if (connected) {
+          downlink_controller_->resend_current_state();
+        } else {
+          downlink_controller_->clear_state();
+        }
+      });
+    downlink_controller_ = std::make_unique<can_ros2_bridge::CanCommandController>(
+      *this, [this](const can_ros2_bridge::CanFrame & frame) {return send_frame(frame);},
+      kDownlinkHeartbeatPeriod);
+
     RCLCPP_INFO(get_logger(), "Listening on SocketCAN interface '%s'", interface.c_str());
     RCLCPP_INFO(
-      get_logger(), "Heartbeat ID=0x%X timeout=%ld ms; global command ID=0x%X",
+      get_logger(),
+      "F407 heartbeat ID=0x%X timeout=%ld ms; downlink heartbeat ID=0x%X period=%ld ms",
       can_ros2_bridge::Rk3588Protocol::kNodeId,
       static_cast<long>(kHeartbeatTimeout.count()),
-      can_ros2_bridge::Rk3588Protocol::kFeedbackId);
+      can_ros2_bridge::Rk3588Protocol::kFeedbackId,
+      static_cast<long>(kDownlinkHeartbeatPeriod.count()));
 
-    can_data_controller_ =
-      std::make_unique<can_ros2_bridge::CanDataController>(
-      *this, [this](const std::uint32_t control_bits) {
-        return send_manual_enable(control_bits);
-      }, [this](const std::uint8_t command, const std::int16_t value0,
-        const std::int16_t value1, const std::int16_t value2) {
-        return send_int16x3(command, value0, value1, value2);
-      });
-
-    send_global_enable(false);
     receive_thread_ = std::thread(&CanBridgeNode::receive_loop, this);
   }
 
@@ -72,56 +68,17 @@ public:
   }
 
 private:
-  void send_global_enable(const bool enabled)
+  bool send_frame(const can_ros2_bridge::CanFrame & frame)
   {
-    const auto frame = can_ros2_bridge::Rk3588Protocol::make_global_enable_frame(enabled);
-    try {
-      const std::lock_guard<std::mutex> lock(send_mutex_);
-      transport_->send(frame, 100ms);
-      RCLCPP_INFO(
-        get_logger(), "Sent global %s: CAN ID=0x%X data=[0x%02X, 0x%02X]",
-        enabled ? "enable" : "disable", frame.id, frame.data[0], frame.data[1]);
-    } catch (const std::exception & error) {
-      RCLCPP_ERROR(get_logger(), "Failed to send chassis command: %s", error.what());
-    }
-  }
-
-  bool send_manual_enable(const std::uint32_t control_bits)
-  {
-    const auto frame = can_ros2_bridge::Rk3588Protocol::make_manual_enable_frame(
-      control_bits);
-    try {
-      const std::lock_guard<std::mutex> lock(send_mutex_);
-      transport_->send(frame, 100ms);
-      RCLCPP_INFO(
-        get_logger(),
-        "Sent manual enable command: control_bits=0x%08X CAN ID=0x%X "
-        "data=[0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X]",
-        static_cast<unsigned int>(control_bits), frame.id, frame.data[0], frame.data[1],
-        frame.data[2], frame.data[3], frame.data[4]);
-      return true;
-    } catch (const std::exception & error) {
-      RCLCPP_ERROR(get_logger(), "Failed to send manual enable command: %s", error.what());
-      return false;
-    }
-  }
-
-  bool send_int16x3(
-    const std::uint8_t command, const std::int16_t value0,
-    const std::int16_t value1, const std::int16_t value2)
-  {
-    const auto frame = can_ros2_bridge::Rk3588Protocol::make_int16x3_frame(
-      command, value0, value1, value2);
     try {
       const std::lock_guard<std::mutex> lock(send_mutex_);
       transport_->send(frame, 100ms);
       RCLCPP_DEBUG(
-        get_logger(), "Sent int16x3 command 0x%02X: CAN ID=0x%X values=[%d, %d, %d]",
-        command, frame.id, static_cast<int>(value0),
-        static_cast<int>(value1), static_cast<int>(value2));
+        get_logger(), "Sent CAN frame: ID=0x%X len=%zu", frame.id, frame.length);
       return true;
     } catch (const std::exception & error) {
-      RCLCPP_ERROR(get_logger(), "Failed to send int16x3 command: %s", error.what());
+      RCLCPP_ERROR(
+        get_logger(), "Failed to send CAN frame ID=0x%X: %s", frame.id, error.what());
       return false;
     }
   }
@@ -148,25 +105,21 @@ private:
       try {
         const auto frame = transport_->receive(kReceivePollInterval);
         log_frame(frame);
-        if (can_ros2_bridge::Rk3588Protocol::is_heartbeat(frame)) {
-          heartbeat_controller_.on_heartbeat();
-        } else {
-          can_data_controller_->handle_can_frame(frame);
-        }
-      } catch (const drivers::socketcan::SocketCanTimeout &) {  
-        // Poll timeout is expected; check for a lost heartbeat below.
+        uplink_controller_->handle_can_frame(frame);
+      } catch (const drivers::socketcan::SocketCanTimeout &) {
+        // Poll timeout is expected; check F407 heartbeat freshness below.
       } catch (const std::exception & error) {
         RCLCPP_ERROR(get_logger(), "CAN receive failed: %s", error.what());
         break;
       }
 
-      heartbeat_controller_.check_timeout();
+      uplink_controller_->check_heartbeat_timeout();
     }
   }
 
   std::unique_ptr<can_ros2_bridge::CanTransport> transport_;
-  can_ros2_bridge::HeartbeatController heartbeat_controller_;
-  std::unique_ptr<can_ros2_bridge::CanDataController> can_data_controller_;
+  std::unique_ptr<can_ros2_bridge::F407UplinkController> uplink_controller_;
+  std::unique_ptr<can_ros2_bridge::CanCommandController> downlink_controller_;
   std::mutex send_mutex_;
   std::atomic_bool running_;
   std::thread receive_thread_;

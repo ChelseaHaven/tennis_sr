@@ -13,9 +13,9 @@ find_package(ros2_socketcan REQUIRED)
 find_package(std_msgs REQUIRED)
 
 add_library(can_ros2_bridge_core
-  src/can_data_controller.cpp
+  src/can_command_controller.cpp
   src/can_transport.cpp
-  src/heartbeat.cpp
+  src/f407_uplink_controller.cpp
   src/rk3588_protocol.cpp
 )
 target_include_directories(can_ros2_bridge_core PUBLIC

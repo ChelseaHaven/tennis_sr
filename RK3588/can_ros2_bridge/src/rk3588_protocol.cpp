@@ -6,10 +6,12 @@ namespace can_ros2_bridge
 bool Rk3588Protocol::is_heartbeat(const CanFrame & frame) noexcept
 {
   return !frame.is_extended && frame.id == kNodeId &&
-         frame.length == 1U && frame.data[0] == kCommandHeartbeat;
+         frame.length == 1U && frame.data[0] == kCommandHeartbeatFromMcu;
 }
 
-bool Rk3588Protocol::parse_int16x3(const CanFrame & frame, const std::uint8_t command, std::array<std::int16_t, 3U> & values) noexcept
+bool Rk3588Protocol::parse_int16x3(
+  const CanFrame & frame, const std::uint8_t command,
+  std::array<std::int16_t, 3U> & values) noexcept
 {
   if (frame.is_extended || frame.id != kNodeId || frame.length != 7U ||
     frame.data[0] != command)
@@ -30,13 +32,12 @@ bool Rk3588Protocol::parse_int16x3(const CanFrame & frame, const std::uint8_t co
   return true;
 }
 
-CanFrame Rk3588Protocol::make_global_enable_frame(const bool enabled) noexcept
+CanFrame Rk3588Protocol::make_heartbeat_frame() noexcept
 {
   CanFrame frame;
   frame.id = kFeedbackId;
-  frame.length = 2U;
-  frame.data[0] = kCommandGlobalEnable;
-  frame.data[1] = static_cast<std::uint8_t>(enabled ? 1U : 0U);
+  frame.length = 1U;
+  frame.data[0] = kCommandHeartbeatToMcu;
   return frame;
 }
 
