@@ -86,6 +86,12 @@ void rk3588_refresh_freshness(void);
  */
 uint8_t rk3588_data_get_value(uint8_t command, Rk3588DataValue_t *out_value);
 /**
+ * @brief 清除指定命令的接收缓存数值和原始数据。
+ * @param command RK3588 命令索引。
+ * @return 命令索引有效时返回 1，否则返回 0。
+ */
+uint8_t rk3588_data_clear(uint8_t command);
+/**
  * @brief 按大端序解析已缓存数据中的三个有符号 int16。
  * @param item_data 由 rk3588_data_get_value 获取的数据项。
  * @param[out] out_values 输出的三个数值。

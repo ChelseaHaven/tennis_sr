@@ -122,20 +122,28 @@ static uint8_t ProbeImu(void)
 
 /**
  * @brief 等待启动阶段累计收到 7 次航向角更新，并将当前航向角设为零点。
+ * @return 收到足够航向角数据并完成归零时返回 1，超时返回 0。
  */
-static void yaw_initialize_zero(void)
+static uint8_t yaw_initialize_zero(void)
 {
 	uint8_t num = 0U;
 	uint8_t yaw_if_get;
+	uint32_t start_ms = HAL_GetTick();
+	const uint32_t timeout_ms = 3000U;
 
-	while (1) {
+	while ((HAL_GetTick() - start_ms) < timeout_ms) {
 		yaw_if_get = imu_data_get();
-		imu_delay_ms(100U);
-		if (yaw_if_get && num++ > 5U) {
-			yaw_init();
-			break;
+		if (yaw_if_get) {
+			num++;
+			if (num >= 7U) {
+				yaw_init();
+				return 1U;
+			}
 		}
+		imu_delay_ms(100U);
 	}
+
+	return 0U;
 }
 
 int32_t imu_set_algorithm(IMU_Algorithm algorithm)
@@ -164,10 +172,10 @@ int32_t imu_set_algorithm(IMU_Algorithm algorithm)
 }
 
 /**
- * @brief 探测 IMU 波特率，并配置为 230400 波特率和九轴模式。
- * @note 配置成功后会等待航向角更新，以建立初始基准。
+ * @brief 探测 IMU 波特率，并配置为 230400 波特率和六轴模式。
+ * @return 探测并配置成功时返回 1，否则返回 0。
  */
-static void AutoScanSensor(void)
+static uint8_t AutoScanSensor(void)
 {
 	uint8_t i;
 	uint32_t startup_baud = huart1.Init.BaudRate;
@@ -187,7 +195,7 @@ static void AutoScanSensor(void)
 	if (Uart1SetBaudRate(startup_baud) != HAL_OK) {
 		printf("IMU UART init failed at startup baud %lu\r\n",
 			(unsigned long)startup_baud);
-		return;
+		return 0U;
 	}
 	if (ProbeImu()) {
 		detected_baud = startup_baud;
@@ -196,7 +204,7 @@ static void AutoScanSensor(void)
 	if (detected_baud == 0U) {
 		for (i = 0U; i < (uint8_t)(sizeof(baud_candidates) / sizeof(baud_candidates[0])); i++) {
 			if (baud_candidates[i].baud_rate == startup_baud) continue;
-			if (Uart1SetBaudRate(baud_candidates[i].baud_rate) != HAL_OK) return;
+			if (Uart1SetBaudRate(baud_candidates[i].baud_rate) != HAL_OK) return 0U;
 			if (ProbeImu()) {
 				detected_baud = baud_candidates[i].baud_rate;
 				break;
@@ -209,7 +217,7 @@ static void AutoScanSensor(void)
 			printf("IMU UART restore to 9600 failed\r\n");
 		}
 		printf("IMU not found at supported WIT baud rates\r\n");
-		return;
+		return 0U;
 	}
 	printf("IMU found at %lu\r\n", (unsigned long)detected_baud);
 
@@ -217,20 +225,21 @@ static void AutoScanSensor(void)
 		if (WitSetUartBaud(WIT_BAUD_230400) != WIT_HAL_OK ||
 			Uart1SetBaudRate(230400U) != HAL_OK) {
 			printf("IMU baud change to 230400 failed\r\n");
-			return;
+			return 0U;
 		}
 		imu_delay_ms(50U);
 	}
 	WitInit(WIT_PROTOCOL_MODBUS, 0x50);
 	if (!ProbeImu()) {
 		printf("IMU at 230400 not confirmed\r\n");
-		return;
+		return 0U;
 	}
 	if (imu_set_algorithm(IMU_ALGORITHM_6_AXIS) != WIT_HAL_OK) {
 		printf("IMU 6-axis algorithm setup failed\r\n");
-		return;
+		return 0U;
 	}
 	printf("IMU ready at 230400\r\n");
+	return 1U;
 }
 
 /**
@@ -326,7 +335,10 @@ void imu_init(void)
     WitRegisterCallBack(CopeSensorData);
     WitDelayMsRegister(SensorDelayMs);
     imu_delay_ms(300U);
-    AutoScanSensor();
-	yaw_initialize_zero();
+    if (AutoScanSensor()) {
+		if (!yaw_initialize_zero()) {
+			printf("IMU yaw initialization timed out; continuing without zeroing\r\n");
+		}
+	}
     imu_init_in_progress = 0U;
 }

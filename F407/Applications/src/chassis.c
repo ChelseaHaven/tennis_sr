@@ -27,16 +27,16 @@ static uint8_t chassis_handle_emergency_stop(uint8_t run_enable)
     R_Vel.X_target = 0.0f;
     R_Vel.Y_target = 0.0f;
     R_Vel.W_target = 0.0f;
-
+    
     R_Pos.X_body_error = 0.0f;
     R_Pos.Y_body_error = 0.0f;
     R_Pos.W_body_error = 0.0f;
     R_Pos.X_global_target = 0.0f;
     R_Pos.Y_global_target = 0.0f;
     R_Pos.W_global_target = 0.0f;
-    wireless_test[0] = 0.0f;
-    wireless_test[1] = 0.0f;
-    wireless_test[2] = 0.0f;
+    // wireless_test[0] = 0.0f;
+    // wireless_test[1] = 0.0f;
+    // wireless_test[2] = 0.0f;
 
     for (i = 0U; i < 4U; i++)
     {

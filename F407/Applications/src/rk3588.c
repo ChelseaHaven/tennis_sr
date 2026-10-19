@@ -245,6 +245,32 @@ uint8_t rk3588_data_get_value(uint8_t command, Rk3588DataValue_t *out_value)
     return 1U;
 }
 
+uint8_t rk3588_data_clear(uint8_t command)
+{
+    Rk3588DataValue_t *item_data;
+    uint8_t index;
+
+    if (command >= RK3588_DATA_ITEM_COUNT)
+    {
+        return 0U;
+    }
+
+    taskENTER_CRITICAL();
+    item_data = &rk3588_telemetry.item[command];
+    item_data->value = 0;
+    for (index = 0U; index < sizeof(item_data->raw); index++)
+    {
+        item_data->raw[index] = 0U;
+    }
+    item_data->raw_length = 0U;
+    item_data->time_info.age_ms = 0U;
+    item_data->time_info.valid = 0U;
+    item_data->time_info.fresh = 0U;
+    taskEXIT_CRITICAL();
+
+    return 1U;
+}
+
 uint8_t rk3588_data_is_enabled(uint32_t enable_mask)
 {
     Rk3588DataValue_t manual_enable;

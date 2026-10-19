@@ -160,7 +160,7 @@ void WitSerialDataIn(uint8_t ucData)
             if(s_ucWitDataBuff[0] != 0x55)
             {
                 s_uiWitDataCnt--;
-                memcpy(s_ucWitDataBuff, &s_ucWitDataBuff[1], s_uiWitDataCnt);
+                memmove(s_ucWitDataBuff, &s_ucWitDataBuff[1], s_uiWitDataCnt);
                 return ;
             }
             if(s_uiWitDataCnt >= 11)
@@ -169,7 +169,7 @@ void WitSerialDataIn(uint8_t ucData)
                 if(ucSum != s_ucWitDataBuff[10])
                 {
                     s_uiWitDataCnt--;
-                    memcpy(s_ucWitDataBuff, &s_ucWitDataBuff[1], s_uiWitDataCnt);
+                    memmove(s_ucWitDataBuff, &s_ucWitDataBuff[1], s_uiWitDataCnt);
                     return ;
                 }
                 usData[0] = ((uint16_t)s_ucWitDataBuff[3] << 8) | (uint16_t)s_ucWitDataBuff[2];
@@ -186,7 +186,7 @@ void WitSerialDataIn(uint8_t ucData)
                 if(s_ucWitDataBuff[1] != FuncR)
                 {
                     s_uiWitDataCnt--;
-                    memcpy(s_ucWitDataBuff, &s_ucWitDataBuff[1], s_uiWitDataCnt);
+                    memmove(s_ucWitDataBuff, &s_ucWitDataBuff[1], s_uiWitDataCnt);
                     return ;
                 }
                 if(s_uiWitDataCnt < (s_ucWitDataBuff[2] + 5))return ;
@@ -195,7 +195,7 @@ void WitSerialDataIn(uint8_t ucData)
                 if(usTemp != usCRC16)
                 {
                     s_uiWitDataCnt--;
-                    memcpy(s_ucWitDataBuff, &s_ucWitDataBuff[1], s_uiWitDataCnt);
+                    memmove(s_ucWitDataBuff, &s_ucWitDataBuff[1], s_uiWitDataCnt);
                     return ;
                 }
                 usTemp = s_ucWitDataBuff[2] >> 1;

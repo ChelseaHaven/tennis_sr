@@ -189,8 +189,17 @@ void Start_chassis_Task(void const * argument)
 
     Rk3588DataValue_t item;
     int16_t target[3];
+    uint8_t chassis_enabled = rk3588_data_is_enabled(RK3588_MANUAL_ENABLE_CHASSIS_MASK);
 
-    if (rk3588_data_get_value(RK3588_CMD_TARGET_VELOCITY, &item) &&
+
+    if (chassis_enabled == 0U)
+    {
+      (void)rk3588_data_clear(RK3588_CMD_TARGET_VELOCITY);
+      R_Vel.X_target = 0.0f;
+      R_Vel.Y_target = 0.0f;
+      R_Vel.W_target = 0.0f;
+    }
+    else if (rk3588_data_get_value(RK3588_CMD_TARGET_VELOCITY, &item) &&
         item.time_info.valid && item.time_info.fresh &&
         rk3588_data_parse_int16x3(&item, target))
     {
@@ -215,7 +224,7 @@ void Start_chassis_Task(void const * argument)
       // R_Pos.Y_global_target = (float)wireless_test[1];
       // R_Pos.W_global_target = DEG_TO_RAD((float)wireless_test[2]);
     encoder_process();
-    chassis_control_process(1);
+    chassis_control_process(chassis_enabled);
 
     (void)rk3588_data_send_int16x3(RK3588_CMD_CHASSIS_VELOCITY, telemetry_float_to_int16(R_Vel.X), telemetry_float_to_int16(R_Vel.Y), telemetry_float_to_int16(R_Vel.W * 1000.0f));
     (void)rk3588_data_send_int16x3(RK3588_CMD_CHASSIS_POSITION, telemetry_float_to_int16(R_Pos.X_global / 10.0f), telemetry_float_to_int16(R_Pos.Y_global / 10.0f), telemetry_float_to_int16(R_Pos.W_global * 1000.0f));
@@ -267,10 +276,7 @@ void Start_launcher_Task(void const * argument)
 //        (unsigned)enable_data.time_info.fresh,
 //        (unsigned long)enable_data.time_info.age_ms);
 
-    uint8_t chassis_enabled =
-      rk3588_data_is_enabled(RK3588_MANUAL_ENABLE_CHASSIS_MASK);
-    uint8_t launcher_enabled =
-      rk3588_data_is_enabled(RK3588_MANUAL_ENABLE_LAUNCHER_MASK);
+    uint8_t launcher_enabled = rk3588_data_is_enabled(RK3588_MANUAL_ENABLE_LAUNCHER_MASK);
     // printf("chassis_enabled=%u, launcher_enabled=%u\r\n", (unsigned)chassis_enabled, (unsigned)launcher_enabled);
 
 
