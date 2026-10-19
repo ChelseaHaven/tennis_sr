@@ -1,5 +1,0 @@
-#!/usr/bin/env python3
-from fast_fly_ros2.planner import main
-
-if __name__ == "__main__":
-    main()

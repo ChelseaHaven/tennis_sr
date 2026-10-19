@@ -1,7 +1,0 @@
-.venv/
-build/
-install/
-log/
-.ros/
-__pycache__/
-*.pyc
