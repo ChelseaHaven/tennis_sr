@@ -47,8 +47,7 @@ sudo apt install ros-jazzy-ros2-socketcan ros-jazzy-ros2-socketcan-msgs
 例如以 20 Hz 下发 `vx=0.1 m/s`、`vy=0`、`wz=0.2 rad/s`：
 
 ```bash
-ros2 topic pub -r 20 /cmd_vel geometry_msgs/msg/Twist \
-  "{linear: {x: 0.1, y: 0.0}, angular: {z: 0.2}}"
+ros2 topic pub -r 20 /cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.1, y: 0.0}, angular: {z: 0.2}}"
 ```
 
 IMU 数据通过标准 CAN ID `0x010` 上发，命令字节后跟三个大端有符号 `int16`：`0x01` 为 gyro XYZ，`0x02` 为 accel XYZ，`0x03` 为 pitch/roll/yaw。桥接节点收到每条命令后独立发布对应的 `geometry_msgs/msg/Vector3Stamped` 话题：`/imu/gyro`（°/s）、`/imu/accel`（g）和 `/imu/euler`（x=pitch、y=roll、z=yaw，°），与 F407 的 `imu` 结构体单位一致，默认 `frame_id=imu_link`。换算比例分别为 `gyro=raw*2000/32768`、`accel=raw*16/32768`、`angle=raw*180/32768`。话题和 frame ID 可用 `gyro_topic`、`accel_topic`、`attitude_topic`、`imu_frame_id` 参数覆盖。

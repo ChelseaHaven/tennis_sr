@@ -40,8 +40,8 @@ cd /home/pi/chenzhihan/tennis_project/tennis_sr/RK3588/mecanum_ros2_ws
 
 ```bash
 ssh -Y pi@192.168.1.88
-cd /home/pi/chenzhihan/tennis_project/tennis_sr/RK3588/mecanum_ros2_ws
-./run_interactive.sh
+cd /home/pi/chenzhihan/tennis_project/tennis_sr
+./RK3588/mecanum_ros2_ws/run_interactive.sh
 ```
 
 `echo "$DISPLAY"` 应有值（SSH 转发通常为 `localhost:10.0`）。保留 SSH 分配的
