@@ -34,74 +34,69 @@ sudo apt install ros-jazzy-ros2-socketcan ros-jazzy-ros2-socketcan-msgs
 
 ## 工程模块
 
-- `bridge_node.cpp`：主程序，管理 SocketCAN 收发，并将收到的帧交给上行处理器。
-- `f407_uplink_controller.cpp`：统一处理 F407 上发数据，包括心跳识别和超时、IMU/底盘数据解析换算、ROS 话题发布。
-- `can_command_controller.cpp`：统一处理 3588 下行，包括订阅 ROS 控制话题、组装并发送 CAN 命令，以及周期下发心跳。
-- `can_transport.cpp`：经典 CAN 通用收发。
-- `rk3588_protocol.cpp`：3588 与单片机间的 CAN 协议和帧编码。
+| 文件 | 作用 |
+|---|---|
+| `bridge_node.cpp` | SocketCAN 主节点，收帧后交给上行处理器。 |
+| `f407_uplink_controller.cpp` | 解析 F407 上行帧、检查心跳并发布 ROS 数据。 |
+| `can_command_controller.cpp` | 订阅控制话题、组装下行帧并周期发送心跳。 |
+| `can_transport.cpp`、`rk3588_protocol.cpp` | CAN 收发及协议帧编码、解码。 |
 
-心跳双向使用命令字节 `0x00`，由 CAN ID 区分方向：F407 每 100 ms 通过 `0x010` 上发 `[0x00]`，3588 每 100 ms 通过 `0x110` 下发 `[0x00]`。上行处理器发布 `/f407/connected`（`std_msgs/msg/UInt8`，在线为 `1`，超时为 `0`），状态以 100 ms 周期发布；连续 200 ms 未收到 F407 心跳时状态变为 `0` 并清除 3588 侧缓存控制状态。F407 连续 300 ms 未收到 3588 下行心跳时将全局使能标志置 `0`，并通过该标志门控底盘；收到心跳后标志置 `1`。状态话题名可用 `f407_status_topic` 参数覆盖。
+## CAN 与 ROS 数据
 
-查看 F407 在线状态：
+| 方向 | CAN ID | 命令 | 数据 / ROS 话题 |
+|---|---:|---:|---|
+| F407 → 3588 | `0x010` | `0x00` | F407 心跳，每 100 ms 一帧 `[00]`。 |
+| 3588 → F407 | `0x110` | `0x00` | 3588 心跳，每 100 ms 一帧 `[00]`。 |
+| F407 → 3588 | `0x010` | `0x01` / `0x02` / `0x03` | IMU gyro / accel / pitch-roll-yaw，三个大端 `int16`。 |
+| F407 → 3588 | `0x010` | `0x04` / `0x05` | 底盘速度 `(vx, vy, wz)` / 位置 `(x, y, yaw)`，三个大端 `int16`。 |
+| 3588 → F407 | `0x110` | `0x01` | 人工使能控制位；bit 0 底盘，bit 1 发球机。 |
+| 3588 → F407 | `0x110` | `0x02` | 底盘目标速度 `(vx, vy, wz)`，三个大端 `int16`。 |
+
+F407 心跳状态发布在 `/f407/connected`（`std_msgs/msg/UInt8`，在线 `1`、离线 `0`），每 100 ms 发布一次；200 ms 未收到心跳即判离线并清除桥接侧缓存控制状态。F407 连续 300 ms 未收到 3588 心跳时会关闭全局使能并门控底盘。状态话题可通过 `f407_status_topic` 参数修改。
+
+ROS 数据话题及单位：
+
+- `/imu/gyro`：`Vector3Stamped`，XYZ，°/s；原始值换算为 `raw × 2000 / 32768`。
+- `/imu/accel`：`Vector3Stamped`，XYZ，g；换算为 `raw × 16 / 32768`。
+- `/imu/euler`：`Vector3Stamped`，x=pitch、y=roll、z=yaw，°；换算为 `raw × 180 / 32768`。
+- `/chassis/velocity`：`Vector3Stamped`，vx/vy/wz，m/s、m/s、rad/s。
+- `/chassis/position`：`Vector3Stamped`，x/y/yaw，m、m、rad。
+
+IMU 和底盘话题各自按收到的 CAN 命令独立发布。里程计由 F407 的轮速积分得到，未融合 IMU，误差会随时间累积。话题名及 `frame_id` 可通过对应 ROS 参数修改。
+
+## 常用操作
+
+从仓库根目录启动桥接节点（脚本会增量构建，默认使用 `can0`）：
+
+```bash
+./RK3588/can_ros2_bridge/run.sh
+```
+
+查看在线状态或传感器数据：
 
 ```bash
 ros2 topic echo /f407/connected
-```
-
-底盘目标速度通过 `/cmd_vel`（`geometry_msgs/msg/Twist`）下发，默认取 `linear.x`、`linear.y`、`angular.z`，单位为 m/s、m/s、rad/s。桥接节点分别乘以 1000、四舍五入并饱和到 `int16` 范围，再通过标准 CAN ID `0x110`、命令 `0x02` 和三个大端有符号 `int16` 发送；F407 协议单位为 mm/s、mm/s、mrad/s。控制端应持续发布速度指令。
-
-例如以 20 Hz 下发 `vx=0.1 m/s`、`vy=0`、`wz=0.2 rad/s`：
-
-```bash
-ros2 topic pub -r 20 /cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.1, y: 0.0}, angular: {z: 0.2}}"
-```
-
-IMU 数据通过标准 CAN ID `0x010` 上发，命令字节后跟三个大端有符号 `int16`：`0x01` 为 gyro XYZ，`0x02` 为 accel XYZ，`0x03` 为 pitch/roll/yaw。桥接节点收到每条命令后独立发布对应的 `geometry_msgs/msg/Vector3Stamped` 话题：`/imu/gyro`（°/s）、`/imu/accel`（g）和 `/imu/euler`（x=pitch、y=roll、z=yaw，°），与 F407 的 `imu` 结构体单位一致，默认 `frame_id=imu_link`。换算比例分别为 `gyro=raw*2000/32768`、`accel=raw*16/32768`、`angle=raw*180/32768`。话题和 frame ID 可用 `gyro_topic`、`accel_topic`、`attitude_topic`、`imu_frame_id` 参数覆盖。
-
-底盘里程计通过相同 CAN ID 上发，使用同一通用三大端有符号 `int16` 格式：`0x04` 为车体速度 `(vx, vy, wz)`，F407 发送值依次为 mm/s、mm/s、mrad/s；`0x05` 为全局位置 `(x, y, yaw)`，发送值依次为 cm、cm、mrad。F407 每个 20 ms 底盘周期反解四个车轮实测速度并发送一组速度和位置，位置和航向由轮速积分得到，暂未融合 IMU，因此会随时间累积里程计误差。桥接节点使用 `/chassis/velocity` 和 `/chassis/position` 两个 `geometry_msgs/msg/Vector3Stamped` 话题，分别换算成 m/s、m/s、rad/s 和 m、m、rad；默认 `frame_id` 分别为 `base_link` 与 `odom`。话题和坐标系可通过 `chassis_velocity_topic`、`chassis_position_topic`、`chassis_frame_id`、`odom_frame_id` 参数覆盖。
-
-查看数据：
-
-```bash
 ros2 topic echo /imu/euler
 ros2 topic echo /chassis/velocity
 ros2 topic echo /chassis/position
 ```
 
-人工使能通过语义明确的 ROS 话题控制：`/manual_enable/chassis` 控制底盘，`/manual_enable/launcher` 控制发球机。话题类型为 `std_msgs/msg/UInt8`，`data` 只能是 `0` 或 `1`。桥接节点把底盘状态映射到控制字 bit 0、把发球机状态映射到 bit 1，再合并为 4 字节控制位，通过 CAN ID `0x110`、命令 `0x01` 发送。重复收到相同状态时不重复发送，状态变化后才发送新帧；单片机心跳超时时人工控制位清零，心跳恢复时重新发送当前人工状态。
+底盘速度从 `/cmd_vel`（`geometry_msgs/msg/Twist`）下发，使用 `linear.x`、`linear.y`、`angular.z`，单位为 m/s、m/s、rad/s。控制端应持续发布，例如以 20 Hz 下发 `vx=0.1`、`vy=0`、`wz=0.2`：
 
-例如，分别发布以下消息会使能底盘和发球机，对应 CAN 数据 `[0x01, 0x03, 0x00, 0x00, 0x00]`：
+```bash
+ros2 topic pub -r 20 /cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.1, y: 0.0}, angular: {z: 0.2}}"
+```
+
+人工使能话题为 `/manual_enable/chassis` 和 `/manual_enable/launcher`（`std_msgs/msg/UInt8`，`data` 为 `0` 或 `1`）。例如：
 
 ```bash
 ros2 topic pub --once /manual_enable/chassis std_msgs/msg/UInt8 "{data: 1}"
 ros2 topic pub --once /manual_enable/launcher std_msgs/msg/UInt8 "{data: 1}"
 ```
 
-构建并启动：
-
-```bash
-cd ~/chenzhihan/tennis_project/tennis_sr
-source /opt/ros/jazzy/setup.bash
-colcon build --packages-select can_ros2_bridge
-source install/setup.bash
-ros2 run can_ros2_bridge can_receiver_node
-```
-
-也可以直接运行脚本；启动前会执行增量构建，默认使用 `can0`：
-
-```bash
-./RK3588/can_ros2_bridge/run.sh
-```
-
-使用其他 SocketCAN 接口时可指定 `CAN_INTERFACE`，例如：
+其他 CAN 接口可通过 `CAN_INTERFACE` 指定；默认不打印逐帧日志，设置 `log_can_frames:=1` 可开启：
 
 ```bash
 CAN_INTERFACE=can1 ./RK3588/can_ros2_bridge/run.sh
-```
-
-默认不打印逐帧接收日志。可用 ROS 参数 `log_can_frames` 控制：`1` 打印，`0` 静默；
-需要排查 CAN 数据时，从仓库根目录这样运行：
-
-```bash
 ./RK3588/can_ros2_bridge/run.sh -p log_can_frames:=1
 ```
